@@ -29,4 +29,6 @@ Rel(logistics, requisition_system, "Views approvals and processes requisitions",
 ' Requisition System -> External System Interactions
 Rel(requisition_system, ai_system, "Sends requisitions for AI analysis and routing", "API Calls")
 
-@enduml
+@enduml 
+
+raw.githubusercontent.com
