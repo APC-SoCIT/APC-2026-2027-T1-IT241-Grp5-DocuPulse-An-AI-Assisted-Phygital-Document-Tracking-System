@@ -1,0 +1,52 @@
+@startuml RequisitionSystemContainer
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Diagram Title
+title Container Diagram for Requisition Management System
+
+' ACTORS / PERSONS
+Person(requestor, "Requestor", "Creates and manages requisitions, tracks status, and receives notifications.")
+Person(dept_head, "Department Head", "Reviews, endorses, and approves submitted requisitions.")
+Person(exec_director, "Executive Director", "Reviews and grants final approval on requisitions.")
+Person(finance, "Finance", "Reviews and approves requisitions from a budget/finance standpoint.")
+Person(logistics, "Logistics", "Views approved requisitions and processes fulfillment/delivery.")
+
+' EXTERNAL SYSTEM
+System_Ext(ai_system, "AI System", "External AI service that analyzes requisitions and routes them to the appropriate approver.")
+
+System_Boundary(requisition_system, "Requisition Management System") {
+
+    Container(web_app, "Web Portal", "React + Vite, hosted on Vercel", "Single-page application used by requestors and approvers to submit, view, and act on requisitions.")
+
+    Container(api_app, "Requisition API", "Node.js, REST API, hosted on Vercel (Serverless Functions)", "Handles business logic for requisition creation, approval routing, and status updates.")
+
+    ContainerDb(database, "Requisition Database", "Supabase (PostgreSQL)", "Stores requisitions, approval history, statuses, user roles, and audit logs.")
+
+    Container(auth_service, "Auth Service", "Supabase Auth", "Handles user authentication and role-based access control for all actors.")
+
+    Container(notification_service, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes status updates and notifications to requestors and approvers in real time.")
+
+}
+
+' INTERACTIONS & RELATIONSHIPS
+
+' User Interactions
+Rel(requestor, web_app, "Creates and manages requisitions, views status", "HTTPS")
+Rel(dept_head, web_app, "Reviews, endorses, and approves requisitions", "HTTPS")
+Rel(exec_director, web_app, "Reviews and approves requisitions", "HTTPS")
+Rel(finance, web_app, "Reviews and approves requisitions", "HTTPS")
+Rel(logistics, web_app, "Views approvals, processes requisitions", "HTTPS")
+
+' Internal Container Interactions
+Rel(web_app, api_app, "Makes API calls to", "JSON/HTTPS")
+Rel(web_app, auth_service, "Authenticates users via", "HTTPS")
+Rel(api_app, database, "Reads from and writes to", "SQL/TCP (Supabase Client Library)")
+Rel(api_app, notification_service, "Triggers status update events on", "Internal API / Realtime Channel")
+Rel(notification_service, web_app, "Pushes real-time status updates to", "WebSocket")
+Rel(auth_service, database, "Validates and stores user identities in", "SQL/TCP")
+
+' External System Interaction
+Rel(api_app, ai_system, "Sends requisitions for AI analysis and routing", "API Calls")
+Rel(ai_system, api_app, "Returns routing recommendation to", "API Calls")
+
+@enduml
