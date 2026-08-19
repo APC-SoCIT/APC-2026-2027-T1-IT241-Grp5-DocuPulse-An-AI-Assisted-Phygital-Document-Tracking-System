@@ -1,0 +1,76 @@
+@startuml RequisitionSystemComponent
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' Diagram Title
+title Component Diagram for Requisition system
+
+' ACTORS / PERSONS
+Person(requestor, "Requestor", "Creates and manages requisitions, tracks status, and receives notifications.")
+Person(dept_head, "Department Head", "Reviews, endorses, and approves submitted requisitions.")
+Person(exec_director, "Executive Director", "Reviews and grants final approval on requisitions.")
+Person(finance, "Finance", "Reviews and approves requisitions from a budget/finance standpoint.")
+Person(logistics, "Logistics", "Views approved requisitions and processes fulfillment/delivery.")
+
+' EXTERNAL CONTAINERS / SYSTEMS
+Container(web_app, "Web Portal", "React + Vite, hosted on Vercel", "SPA used by all actors to interact with the system.")
+Container(auth_service, "Auth Service", "Supabase Auth", "Handles authentication and role-based access control.")
+ContainerDb(database, "Requisition Database", "Supabase (PostgreSQL)", "Stores requisitions, approvals, statuses, and audit logs.")
+Container(notification_service, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes real-time status updates to users.")
+System_Ext(ai_system, "AI System", "External AI service that analyzes and routes requisitions.")
+
+Container_Boundary(api_app, "Requisition API (Node.js REST API)") {
+
+    Component(requisition_controller, "Requisition Controller", "Express Router", "Exposes REST endpoints for creating, viewing, and updating requisitions.")
+
+    Component(requisition_service_comp, "Requisition Service", "Node.js Module", "Core business logic for creating and managing requisitions (maps to 'Manage Requisition').")
+
+    Component(approval_workflow_comp, "Approval Workflow Component", "Node.js Module", "Manages the endorse/approve sequence across Department Head, Executive Director, and Finance (maps to 'Review/Endorse/Approve' and 'Review/Approve').")
+
+    Component(processing_comp, "Requisition Processing Component", "Node.js Module", "Handles post-approval processing and fulfillment routing to Logistics (maps to 'Process Requisition').")
+
+    Component(ai_routing_comp, "AI Routing Component", "Node.js Module", "Sends requisitions to the external AI System for analysis and receives routing recommendations (maps to 'AI Analysis & Routing').")
+
+    Component(notification_trigger_comp, "Notification Trigger Component", "Node.js Module", "Publishes status-change events for the Notification Service (maps to 'Receive Notifications of Status').")
+
+    Component(auth_middleware, "Auth Middleware", "Express Middleware", "Validates JWTs from Supabase Auth and enforces role-based access on API routes.")
+
+    Component(data_access_comp, "Data Access Layer", "Supabase Client Library", "Handles all reads/writes to the Requisition Database.")
+
+}
+
+' INTERACTIONS & RELATIONSHIPS
+
+' Web Portal -> API components
+Rel(web_app, requisition_controller, "Makes API calls to", "JSON/HTTPS")
+
+' Controller routing
+Rel(requisition_controller, auth_middleware, "Passes requests through")
+Rel(auth_middleware, auth_service, "Validates tokens with", "HTTPS")
+Rel(requisition_controller, requisition_service_comp, "Routes create/manage requests to")
+Rel(requisition_controller, approval_workflow_comp, "Routes review/endorse/approve requests to")
+Rel(requisition_controller, processing_comp, "Routes processing requests to")
+
+' Actor-driven flows (via Web Portal -> Controller, shown for clarity)
+Rel(requestor, requisition_controller, "Creates/manages requisitions via", "HTTPS")
+Rel(dept_head, requisition_controller, "Reviews/endorses/approves via", "HTTPS")
+Rel(exec_director, requisition_controller, "Reviews/approves via", "HTTPS")
+Rel(finance, requisition_controller, "Reviews/approves via", "HTTPS")
+Rel(logistics, requisition_controller, "Views/processes requisitions via", "HTTPS")
+
+' Internal component collaboration
+Rel(requisition_service_comp, data_access_comp, "Reads/writes requisition data via")
+Rel(approval_workflow_comp, data_access_comp, "Reads/writes approval status via")
+Rel(processing_comp, data_access_comp, "Reads/writes processing status via")
+Rel(approval_workflow_comp, ai_routing_comp, "Requests routing recommendation from")
+Rel(ai_routing_comp, ai_system, "Sends requisition data to / receives recommendation from", "API Calls")
+
+Rel(requisition_service_comp, notification_trigger_comp, "Triggers notification on requisition update")
+Rel(approval_workflow_comp, notification_trigger_comp, "Triggers notification on status change")
+Rel(processing_comp, notification_trigger_comp, "Triggers notification on processing update")
+Rel(notification_trigger_comp, notification_service, "Publishes status events to", "Internal API / Realtime Channel")
+
+' Data layer to database
+Rel(data_access_comp, database, "Reads from and writes to", "SQL/TCP")
+
+@enduml
+raw.githubusercontent.com
