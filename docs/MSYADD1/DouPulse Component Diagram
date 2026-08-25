@@ -11,8 +11,10 @@ Person(exec_director, "Executive Director", "Reviews and grants final approval o
 Person(finance, "Finance", "Reviews and approves requisitions from a budget/finance standpoint.")
 Person(logistics, "Logistics", "Views approved requisitions and processes fulfillment/delivery.")
 
-' EXTERNAL CONTAINERS / SYSTEMS
+' WEB PORTAL (placed directly under Persons - primary entry point for all actors)
 Container(web_app, "Web Portal", "React + Vite, hosted on Vercel", "SPA used by all actors to interact with the system.")
+
+' EXTERNAL CONTAINERS / SYSTEMS
 Container(auth_service, "Auth Service", "Supabase Auth", "Handles authentication and role-based access control.")
 ContainerDb(database, "Requisition Database", "Supabase (PostgreSQL)", "Stores requisitions, approvals, statuses, and audit logs.")
 Container(notification_service, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes real-time status updates to users.")
@@ -40,6 +42,13 @@ Container_Boundary(api_app, "Requisition API (Node.js REST API)") {
 
 ' INTERACTIONS & RELATIONSHIPS
 
+' Actor -> Web Portal (all actors connect to the Web Portal, not directly to the API)
+Rel(requestor, web_app, "Creates/manages requisitions via", "HTTPS")
+Rel(dept_head, web_app, "Reviews/endorses/approves via", "HTTPS")
+Rel(exec_director, web_app, "Reviews/approves via", "HTTPS")
+Rel(finance, web_app, "Reviews/approves via", "HTTPS")
+Rel(logistics, web_app, "Views/processes requisitions via", "HTTPS")
+
 ' Web Portal -> API components
 Rel(web_app, requisition_controller, "Makes API calls to", "JSON/HTTPS")
 
@@ -50,13 +59,6 @@ Rel(requisition_controller, requisition_service_comp, "Routes create/manage requ
 Rel(requisition_controller, approval_workflow_comp, "Routes review/endorse/approve requests to")
 Rel(requisition_controller, processing_comp, "Routes processing requests to")
 
-' Actor-driven flows (via Web Portal -> Controller, shown for clarity)
-Rel(requestor, requisition_controller, "Creates/manages requisitions via", "HTTPS")
-Rel(dept_head, requisition_controller, "Reviews/endorses/approves via", "HTTPS")
-Rel(exec_director, requisition_controller, "Reviews/approves via", "HTTPS")
-Rel(finance, requisition_controller, "Reviews/approves via", "HTTPS")
-Rel(logistics, requisition_controller, "Views/processes requisitions via", "HTTPS")
-
 ' Internal component collaboration
 Rel(requisition_service_comp, data_access_comp, "Reads/writes requisition data via")
 Rel(approval_workflow_comp, data_access_comp, "Reads/writes approval status via")
@@ -66,11 +68,10 @@ Rel(ai_routing_comp, ai_system, "Sends requisition data to / receives recommenda
 
 Rel(requisition_service_comp, notification_trigger_comp, "Triggers notification on requisition update")
 Rel(approval_workflow_comp, notification_trigger_comp, "Triggers notification on status change")
-Rel(processing_comp, notification_trigger_comp, "Triggers notification on processing update")
+Rel(processing_comp, notification_trigger_comp, "<<extend>>")
 Rel(notification_trigger_comp, notification_service, "Publishes status events to", "Internal API / Realtime Channel")
 
 ' Data layer to database
 Rel(data_access_comp, database, "Reads from and writes to", "SQL/TCP")
 
 @enduml
-raw.githubusercontent.com
