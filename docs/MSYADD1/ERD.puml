@@ -1,0 +1,131 @@
+@startuml DocuPulse_ERD
+
+' Visual Setup & Palette Matching Reference Image
+skinparam monochrome false
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam linetype ortho
+skinparam dpi 300
+skinparam nodesep 70
+skinparam ranksep 80
+
+skinparam class {
+  BackgroundColor #F8FAFC
+  ArrowColor #475569
+  BorderColor #334155
+  FontName "Segoe UI", Arial, sans-serif
+  FontSize 11
+  HeaderBackgroundColor #E2E8F0
+  FontColor #0F172A
+}
+
+!define PrimaryKey(x) <b><color:#000000>•</color></b> x : UUID <b>«PK»</b>
+!define ForeignKey(x) <b><color:#000000>•</color></b> x : UUID <b>«FK»</b>
+!define PrimaryForeignKey(x) <b><color:#000000>•</color></b> x : UUID <b>«PK, FK»</b>
+
+' LEVEL 1: Top Parent Entities
+entity "DEPARTMENTS" as departments {
+  PrimaryKey(department_id)
+  --
+  department_name : VARCHAR(100)
+  dept_code : VARCHAR(20)
+  office_location : VARCHAR(150)
+  created_at : TIMESTAMP
+}
+
+entity "USERS" as users {
+  PrimaryKey(user_id)
+  --
+  ForeignKey(department_id)
+  full_name : VARCHAR(100)
+  email : VARCHAR(100)
+  password_hash : VARCHAR(255)
+  user_type : VARCHAR(30)
+  phone_number : VARCHAR(20)
+  is_active : BOOLEAN
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+' LEVEL 2: Central Core Document Entity
+entity "DOCUMENTS" as documents {
+  PrimaryKey(document_id)
+  --
+  ForeignKey(requestor_id)
+  ForeignKey(current_department_id)
+  tracking_number : VARCHAR(50)
+  title : VARCHAR(150)
+  document_type : VARCHAR(50)
+  status : VARCHAR(30)
+  priority_level : VARCHAR(20)
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+' LEVEL 3: Downstream Extensions & Audit Logs
+entity "PHYGITAL_TAGS" as tags {
+  PrimaryKey(tag_id)
+  --
+  ForeignKey(document_id)
+  tag_code : VARCHAR(100)
+  tag_type : VARCHAR(30)
+  status : VARCHAR(20)
+  registered_at : TIMESTAMP
+}
+
+entity "AI_DOCUMENT_ANALYSIS" as ai_analysis {
+  PrimaryKey(analysis_id)
+  --
+  ForeignKey(document_id)
+  ocr_raw_text : TEXT
+  ai_summary : TEXT
+  suggested_category : VARCHAR(50)
+  confidence_score : DECIMAL(5,2)
+  urgency_rating : VARCHAR(20)
+  processed_at : TIMESTAMP
+}
+
+entity "APPROVAL_WORKFLOWS" as workflows {
+  PrimaryKey(workflow_id)
+  --
+  ForeignKey(document_id)
+  ForeignKey(approver_id)
+  step_number : INT
+  approval_status : VARCHAR(30)
+  action_date : TIMESTAMP
+  comments : TEXT
+}
+
+entity "DOCUMENT_ROUTING_LOGS" as routing_logs {
+  PrimaryKey(log_id)
+  --
+  ForeignKey(document_id)
+  ForeignKey(handler_id)
+  ForeignKey(department_id)
+  action_taken : VARCHAR(50)
+  remarks : TEXT
+  location_scanned : VARCHAR(100)
+  timestamp : TIMESTAMP
+}
+
+' Forced Layout Structure (Hierarchical Alignment)
+departments -[hidden]right-> users
+users -[hidden]down-> documents
+tags -[hidden]right-> ai_analysis
+ai_analysis -[hidden]right-> workflows
+workflows -[hidden]right-> routing_logs
+
+' Relationships Matching Diagram Style
+departments ||--o{ users : "employs"
+users ||--o{ documents : "creates"
+departments ||--o{ documents : "holds current"
+
+documents ||--o| tags : "bound to"
+documents ||--o| ai_analysis : "processed by"
+documents ||--|{ workflows : "initiates"
+documents ||--|{ routing_logs : "records history"
+
+users ..|{ workflows : "approves"
+users ..|{ routing_logs : "handles"
+
+@enduml
