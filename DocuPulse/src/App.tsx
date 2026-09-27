@@ -80,33 +80,44 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden antialiased selection:bg-indigo-500 selection:text-white">
-      {/* Sidebar Navigation */}
       <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 border-r border-slate-800/80 bg-slate-900/80 backdrop-blur-xl p-4 flex flex-col justify-between hidden md:flex z-30 shrink-0`}>
         <div>
-          {/* Brand Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="p-2 bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 shrink-0 flex items-center justify-center">
-                <FileText className="w-5 h-5 shrink-0" />
-              </div>
-              {isSidebarOpen && (
-                <div className="truncate">
-                  <h1 className="font-bold text-base tracking-tight text-white leading-tight truncate">DocuPulse</h1>
-                  <p className="text-[10px] text-slate-400 font-medium tracking-wide truncate">PHYGITAL TRACKING</p>
+          <div className="mb-6">
+            {isSidebarOpen ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="p-2 bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 shrink-0 flex items-center justify-center">
+                    <FileText className="w-5 h-5 shrink-0" />
+                  </div>
+                  <div className="truncate">
+                    <h1 className="font-bold text-base tracking-tight text-white leading-tight truncate">DocuPulse</h1>
+                    <p className="text-[10px] text-slate-400 font-medium tracking-wide truncate">PHYGITAL TRACKING</p>
+                  </div>
                 </div>
-              )}
-            </div>
-            
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-              className={`p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition shrink-0 ${!isSidebarOpen ? 'mx-auto mt-2' : ''}`}
-              title="Toggle Sidebar"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
+                <button 
+                  onClick={() => setIsSidebarOpen(false)} 
+                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition shrink-0"
+                  title="Collapse Sidebar"
+                >
+                  <Menu className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center">
+                  <FileText className="w-5 h-5 shrink-0" />
+                </div>
+                <button 
+                  onClick={() => setIsSidebarOpen(true)} 
+                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+                  title="Expand Sidebar"
+                >
+                  <Menu className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* User Role Pill */}
           <div className="mb-5">
             {isSidebarOpen ? (
               <div className="p-2.5 bg-slate-950/70 border border-slate-800/80 rounded-xl flex items-center justify-between shadow-inner">
@@ -123,7 +134,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Navigation Links */}
           <nav className="space-y-1.5">
             {allowedNavItems.map((item) => {
               const Icon = item.icon;
@@ -157,7 +167,6 @@ export default function App() {
           </nav>
         </div>
 
-        {/* User Footer & Logout */}
         <div className="pt-4 border-t border-slate-800/80 space-y-3">
           {isSidebarOpen && (
             <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
@@ -179,9 +188,7 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Header Bar */}
         <header className="h-16 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-20">
           <div className="flex items-center gap-3">
             <div className="flex md:hidden items-center gap-2">
@@ -232,7 +239,6 @@ export default function App() {
           </div>
         </header>
 
-        {/* View Surface */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-950 relative">
           <div className="max-w-6xl mx-auto space-y-6">
             {activeTab === 'dp01' && <RequisitionForm />}
