@@ -57,8 +57,8 @@ export default function NotificationsFeed() {
           <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
             <Bell className="w-4 h-4" /> Communications Center
           </div>
-          <h1 className="text-2xl font-bold text-white">Live Supabase Notifications</h1>
-          <p className="text-xs text-slate-400">Automated alerts.</p>
+          <h1 className="text-2xl font-bold text-white">DP-21: Live Supabase Notifications</h1>
+          <p className="text-xs text-slate-400">Automated alerts retrieved from Supabase postgres tables.</p>
         </div>
       </div>
 
