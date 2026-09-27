@@ -106,8 +106,8 @@ export default function RequisitionForm() {
     <div className="max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">DP-01: Digital Requisition Submission</h1>
-          <p className="text-xs text-slate-400">Submit new requisition forms digitally linked to Supabase storage.</p>
+          <h1 className="text-2xl font-bold text-white">Digital Requisition Submission</h1>
+          <p className="text-xs text-slate-400">Submit new requisition forms.</p>
         </div>
         
         <button
