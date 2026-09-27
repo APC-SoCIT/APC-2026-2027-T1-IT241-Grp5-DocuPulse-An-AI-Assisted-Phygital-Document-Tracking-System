@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
   LayoutDashboard, RefreshCw, Activity, AlertTriangle, Clock, 
-  CheckCircle2, Eye, Filter, ArrowUpDown
+  CheckCircle2, Eye, Filter
 } from 'lucide-react';
 
 interface Requisition {

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
-  Truck, PackageCheck, Clock, CheckCircle2, AlertCircle, 
-  Tag, Send, FileText
+  Truck, PackageCheck, CheckCircle2, AlertCircle, FileText
 } from 'lucide-react';
 
 interface Requisition {
