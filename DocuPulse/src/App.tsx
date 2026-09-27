@@ -58,11 +58,11 @@ export default function App() {
   const role = profile?.role || 'Requestor';
 
   const allNavItems = [
-    { id: 'dp01', label: 'Requisition Submission', icon: Send, badge: 'Form', roles: ['Requestor', 'Approver', 'Logistics Officer'] },
-    { id: 'dp02', label: 'Automated Validation', icon: CheckSquare, badge: 'Validation', roles: ['Approver', 'Logistics Officer'] },
-    { id: 'dp11', label: 'Logistics Processing', icon: Truck, badge: 'Procurement', roles: ['Logistics Officer'] },
-    { id: 'dp16', label: 'Logistics Dashboard', icon: LayoutDashboard, badge: 'Live Queue', roles: ['Logistics Officer'] },
-    { id: 'dp21', label: 'Notifications Hub', icon: Bell, badge: 'Hub', roles: ['Requestor', 'Approver', 'Logistics Officer'] }
+    { id: 'dp01', label: 'Requisitions', icon: Send, badge: 'Form', roles: ['Requestor', 'Approver', 'Logistics Officer'] },
+    { id: 'dp02', label: 'Validation', icon: CheckSquare, badge: 'Review', roles: ['Approver', 'Logistics Officer'] },
+    { id: 'dp11', label: 'Logistics', icon: Truck, badge: 'Procurement', roles: ['Logistics Officer'] },
+    { id: 'dp16', label: 'Dashboard', icon: LayoutDashboard, badge: 'Live Queue', roles: ['Logistics Officer'] },
+    { id: 'dp21', label: 'Notifications', icon: Bell, badge: 'Hub', roles: ['Requestor', 'Approver', 'Logistics Officer'] }
   ];
 
   const allowedNavItems = allNavItems.filter(item => item.roles.includes(role));
