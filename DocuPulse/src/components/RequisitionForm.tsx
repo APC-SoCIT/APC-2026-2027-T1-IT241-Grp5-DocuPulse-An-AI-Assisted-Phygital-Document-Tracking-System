@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
-  PlusCircle, Clock, Send, X, Tag, FolderKanban, CheckCircle2, Bell
+  PlusCircle, Clock, Send, X, Tag, FolderKanban, CheckCircle2, FileText
 } from 'lucide-react';
 
 interface Requisition {
@@ -107,10 +107,10 @@ export default function RequisitionForm() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
-            <Bell className="w-4 h-4" />Submission
+            <FileText className="w-3.5 h-3.5" /> REQUISITION SUBMISSION
           </div>
           <h1 className="text-2xl font-bold text-white">Digital Requisition Submission</h1>
-          <p className="text-xs text-slate-400">Submit requisition forms.</p>
+          <p className="text-xs text-slate-400">Submit new requisition forms digitally linked to Supabase database storage.</p>
         </div>
         
         <button

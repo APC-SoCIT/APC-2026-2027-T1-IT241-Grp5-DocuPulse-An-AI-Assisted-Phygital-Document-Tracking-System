@@ -15,11 +15,50 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const fillDemoCredentials = (demoEmail: string, demoRole: 'Requestor' | 'Approver' | 'Logistics Officer') => {
-    setIsSignUp(false);
-    setEmail(demoEmail);
-    setPassword('123123');
-    setRole(demoRole);
+  const handleDemoLogin = async (
+    demoEmail: string, 
+    demoName: string, 
+    demoRole: 'Requestor' | 'Approver' | 'Logistics Officer'
+  ) => {
+    setErrorMsg('');
+    setLoading(true);
+    const demoPassword = 'password123';
+
+    // 1. Try to sign in first
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: demoEmail,
+      password: demoPassword,
+    });
+
+    if (!signInError) {
+      setLoading(false);
+      onAuthSuccess();
+      return;
+    }
+
+    // 2. If user doesn't exist, automatically register the demo account
+    const { error: signUpError } = await supabase.auth.signUp({
+      email: demoEmail,
+      password: demoPassword,
+      options: {
+        data: {
+          full_name: demoName,
+          role: demoRole
+        }
+      }
+    });
+
+    if (signUpError) {
+      setErrorMsg(`Demo Login Error: ${signUpError.message}`);
+    } else {
+      // Sign in right after signup
+      await supabase.auth.signInWithPassword({
+        email: demoEmail,
+        password: demoPassword,
+      });
+      onAuthSuccess();
+    }
+    setLoading(false);
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -64,30 +103,33 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </div>
         </div>
 
-        {/* Demo Credentials Quick-Select */}
+        {/* Demo Fast Login Buttons */}
         <div className="mb-6 p-3 bg-slate-950/80 border border-slate-800 rounded-2xl">
           <div className="flex items-center gap-1.5 text-indigo-400 text-xs font-semibold mb-2">
-            <KeyRound className="w-3.5 h-3.5" /> Fast Demo Access
+            <KeyRound className="w-3.5 h-3.5" /> Fast Demo Access (One-Click)
           </div>
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
-              onClick={() => fillDemoCredentials('admin@apc.edu.ph', 'Logistics Officer')}
-              className="py-1.5 px-2 bg-slate-900 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 rounded-xl text-[10px] text-slate-300 font-medium transition text-center"
+              disabled={loading}
+              onClick={() => handleDemoLogin('admin@apc.edu.ph', 'Admin Logistics', 'Logistics Officer')}
+              className="py-2 px-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 rounded-xl text-[10px] text-indigo-200 font-semibold transition text-center"
             >
               Admin / Logistics
             </button>
             <button
               type="button"
-              onClick={() => fillDemoCredentials('approver@apc.edu.ph', 'Approver')}
-              className="py-1.5 px-2 bg-slate-900 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 rounded-xl text-[10px] text-slate-300 font-medium transition text-center"
+              disabled={loading}
+              onClick={() => handleDemoLogin('approver@apc.edu.ph', 'Department Approver', 'Approver')}
+              className="py-2 px-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 rounded-xl text-[10px] text-indigo-200 font-semibold transition text-center"
             >
               Approver
             </button>
             <button
               type="button"
-              onClick={() => fillDemoCredentials('requestor@apc.edu.ph', 'Requestor')}
-              className="py-1.5 px-2 bg-slate-900 hover:bg-indigo-600/20 border border-slate-800 hover:border-indigo-500/40 rounded-xl text-[10px] text-slate-300 font-medium transition text-center"
+              disabled={loading}
+              onClick={() => handleDemoLogin('requestor@apc.edu.ph', 'Student Requestor', 'Requestor')}
+              className="py-2 px-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 rounded-xl text-[10px] text-indigo-200 font-semibold transition text-center"
             >
               Requestor
             </button>

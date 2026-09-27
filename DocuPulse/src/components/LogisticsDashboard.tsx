@@ -92,7 +92,7 @@ export default function LogisticsDashboard() {
           <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
             <LayoutDashboard className="w-4 h-4" /> Logistics Staff Operations
           </div>
-          <h1 className="text-2xl font-bold text-white">DP-16: Institution-Wide Workflow Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white">Institution Workflow Dashboard</h1>
           <p className="text-xs text-slate-400">Monitor active requisitions across all departments and track real-time workflow stages.</p>
         </div>
 
