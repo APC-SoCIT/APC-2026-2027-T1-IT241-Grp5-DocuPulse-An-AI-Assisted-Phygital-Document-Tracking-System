@@ -81,25 +81,25 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden antialiased selection:bg-indigo-500 selection:text-white">
       {/* Sidebar Navigation */}
-      <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 border-r border-slate-800/80 bg-slate-900/80 backdrop-blur-xl p-4 flex flex-col justify-between hidden md:flex z-30`}>
+      <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 border-r border-slate-800/80 bg-slate-900/80 backdrop-blur-xl p-4 flex flex-col justify-between hidden md:flex z-30 shrink-0`}>
         <div>
           {/* Brand Header */}
-          <div className="flex items-center justify-between mb-6 px-1">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="p-2 bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 shrink-0">
-                <FileText className="w-5 h-5" />
+              <div className="p-2 bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 shrink-0 flex items-center justify-center">
+                <FileText className="w-5 h-5 shrink-0" />
               </div>
               {isSidebarOpen && (
-                <div>
-                  <h1 className="font-bold text-base tracking-tight text-white leading-tight">DocuPulse</h1>
-                  <p className="text-[10px] text-slate-400 font-medium tracking-wide">PHYGITAL TRACKING</p>
+                <div className="truncate">
+                  <h1 className="font-bold text-base tracking-tight text-white leading-tight truncate">DocuPulse</h1>
+                  <p className="text-[10px] text-slate-400 font-medium tracking-wide truncate">PHYGITAL TRACKING</p>
                 </div>
               )}
             </div>
             
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+              className={`p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition shrink-0 ${!isSidebarOpen ? 'mx-auto mt-2' : ''}`}
               title="Toggle Sidebar"
             >
               <Menu className="w-4 h-4" />
@@ -110,21 +110,21 @@ export default function App() {
           <div className="mb-5">
             {isSidebarOpen ? (
               <div className="p-2.5 bg-slate-950/70 border border-slate-800/80 rounded-xl flex items-center justify-between shadow-inner">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                  <span className="text-[11px] font-semibold text-slate-200">{role}</span>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <Shield className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span className="text-[11px] font-semibold text-slate-200 truncate">{role}</span>
                 </div>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
               </div>
             ) : (
               <div className="flex justify-center p-2.5 bg-slate-950 border border-slate-800 rounded-xl" title={role}>
-                <Shield className="w-4 h-4 text-indigo-400" />
+                <Shield className="w-4 h-4 text-indigo-400 shrink-0" />
               </div>
             )}
           </div>
 
           {/* Navigation Links */}
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             {allowedNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -133,7 +133,8 @@ export default function App() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-medium transition-all group ${
+                  title={!isSidebarOpen ? item.label : undefined}
+                  className={`w-full flex items-center ${isSidebarOpen ? 'justify-between' : 'justify-center'} p-2.5 rounded-xl text-xs font-medium transition-all group ${
                     isActive 
                       ? 'bg-gradient-to-r from-indigo-600/20 to-indigo-600/5 text-indigo-300 border border-indigo-500/30 shadow-md shadow-indigo-600/10' 
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
@@ -144,7 +145,7 @@ export default function App() {
                     {isSidebarOpen && <span className="truncate">{item.label}</span>}
                   </div>
                   {isSidebarOpen && (
-                    <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-md ${
+                    <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-md shrink-0 ${
                       isActive ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-950 text-slate-400 border border-slate-800'
                     }`}>
                       {item.badge}
@@ -161,7 +162,7 @@ export default function App() {
           {isSidebarOpen && (
             <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
               <div className="flex items-center gap-1.5 text-indigo-400 text-[11px] font-semibold mb-0.5">
-                <Sparkles className="w-3.5 h-3.5" /> Supabase Realtime
+                <Sparkles className="w-3.5 h-3.5 shrink-0" /> Supabase Realtime
               </div>
               <p className="text-[10px] text-slate-400 leading-tight">Database state synchronized across nodes.</p>
             </div>
@@ -169,7 +170,8 @@ export default function App() {
 
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 p-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition"
+            title={!isSidebarOpen ? "Sign Out" : undefined}
+            className={`w-full flex items-center ${isSidebarOpen ? 'justify-start gap-3' : 'justify-center'} p-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition`}
           >
             <LogOut className="w-4 h-4 shrink-0" />
             {isSidebarOpen && <span>Sign Out</span>}
