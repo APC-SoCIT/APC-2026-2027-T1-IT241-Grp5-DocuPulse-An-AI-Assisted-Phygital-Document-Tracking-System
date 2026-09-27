@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
-  PlusCircle, Clock, Send, X, Tag, FolderKanban, CheckCircle2 
+  PlusCircle, Clock, Send, X, Tag, FolderKanban, CheckCircle2, Bell
 } from 'lucide-react';
 
 interface Requisition {
@@ -103,11 +103,14 @@ export default function RequisitionForm() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto font-sans">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
+          <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
+            <Bell className="w-4 h-4" /> Digital Submission Module
+          </div>
           <h1 className="text-2xl font-bold text-white">Digital Requisition Submission</h1>
-          <p className="text-xs text-slate-400">Submit requisition forms.</p>
+          <p className="text-xs text-slate-400">Submit new requisition forms digitally linked to Supabase database storage.</p>
         </div>
         
         <button
@@ -150,6 +153,8 @@ export default function RequisitionForm() {
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-xs text-slate-500">Loading requisitions from Supabase...</div>
+          ) : requisitions.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-500">No requisitions found. Click "Submit Requisition" to create one.</div>
           ) : (
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider border-b border-slate-800">
