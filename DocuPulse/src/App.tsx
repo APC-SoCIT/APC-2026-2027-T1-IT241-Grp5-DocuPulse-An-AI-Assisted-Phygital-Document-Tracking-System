@@ -7,7 +7,7 @@ import LogisticsDashboard from './components/LogisticsDashboard';
 import NotificationsFeed from './components/NotificationsFeed';
 import Auth from './components/Auth';
 import { 
-  FileText, CheckSquare, Send, Truck, LayoutDashboard, Bell, 
+  CheckSquare, Send, Truck, LayoutDashboard, Bell, 
   ChevronRight, Menu, Shield, LogOut, Sparkles, Layers, Search
 } from 'lucide-react';
 
@@ -86,12 +86,12 @@ export default function App() {
             {isSidebarOpen ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="p-2 bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 shrink-0 flex items-center justify-center">
-                    <FileText className="w-5 h-5 shrink-0" />
+                  <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-0.5 shadow-lg shadow-indigo-600/20">
+                    <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
                   </div>
                   <div className="truncate">
                     <h1 className="font-bold text-base tracking-tight text-white leading-tight truncate">DocuPulse</h1>
-                    <p className="text-[10px] text-slate-400 font-medium tracking-wide truncate">PHYGITAL TRACKING</p>
+                    <p className="text-[9px] text-indigo-400 font-semibold tracking-wide truncate">PHYGITAL TRACKING</p>
                   </div>
                 </div>
                 <button 
@@ -104,8 +104,8 @@ export default function App() {
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
-                <div className="p-2.5 bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center">
-                  <FileText className="w-5 h-5 shrink-0" />
+                <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-0.5 shadow-lg shadow-indigo-600/20">
+                  <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
                 </div>
                 <button 
                   onClick={() => setIsSidebarOpen(true)} 
@@ -192,8 +192,8 @@ export default function App() {
         <header className="h-16 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-20">
           <div className="flex items-center gap-3">
             <div className="flex md:hidden items-center gap-2">
-              <div className="p-1.5 bg-indigo-600 text-white rounded-lg">
-                <FileText className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-0.5">
+                <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
               </div>
               <span className="font-bold text-sm text-white">DocuPulse</span>
             </div>
