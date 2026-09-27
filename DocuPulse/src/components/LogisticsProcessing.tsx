@@ -83,7 +83,7 @@ export default function LogisticsProcessing() {
           <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
             <Truck className="w-4 h-4" /> Logistics Officer Workspace
           </div>
-          <h1 className="text-2xl font-bold text-white">DP-11: Approved Requisition Processing</h1>
+          <h1 className="text-2xl font-bold text-white">Approved Requisition Processing</h1>
           <p className="text-xs text-slate-400">Process approved requisitions, record procurement remarks, and push live status updates to requestors.</p>
         </div>
 
