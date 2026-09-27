@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
-  Package, Clock, CheckCircle2, AlertCircle, Truck, 
-  MessageSquare, Send, Tag, Filter, UserCheck 
+  Package, CheckCircle2, Truck, 
+  MessageSquare, Send, Tag, Filter 
 } from 'lucide-react';
 
 interface RequisitionItem {

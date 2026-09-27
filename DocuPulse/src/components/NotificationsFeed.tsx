@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   Bell, Check, CheckCircle2, Clock, Truck, AlertCircle, 
-  Trash2, Filter, Info, ShieldCheck, Mail
+  Trash2, Info
 } from 'lucide-react';
 
 interface NotificationItem {

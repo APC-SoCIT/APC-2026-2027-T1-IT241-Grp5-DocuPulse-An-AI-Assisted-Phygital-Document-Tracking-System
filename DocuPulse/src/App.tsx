@@ -6,7 +6,7 @@ import LogisticsDashboard from './components/LogisticsDashboard';
 import NotificationsFeed from './components/NotificationsFeed';
 import { 
   FileText, CheckSquare, Send, Truck, LayoutDashboard, Bell, 
-  ChevronRight, Menu, X, Shield, Search, Sparkles
+  ChevronRight, Menu, Shield, Search, Sparkles
 } from 'lucide-react';
 
 export default function App() {
