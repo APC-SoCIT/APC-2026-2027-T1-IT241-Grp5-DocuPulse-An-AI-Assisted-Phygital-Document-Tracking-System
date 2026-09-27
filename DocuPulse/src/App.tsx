@@ -8,7 +8,7 @@ import NotificationsFeed from './components/NotificationsFeed';
 import Auth from './components/Auth';
 import { 
   CheckSquare, Send, Truck, LayoutDashboard, Bell, 
-  ChevronRight, Menu, Shield, LogOut, Sparkles, Layers, Search
+  ChevronRight, Menu, Shield, LogOut, Layers, Search
 } from 'lucide-react';
 
 export default function App() {
@@ -167,16 +167,7 @@ export default function App() {
           </nav>
         </div>
 
-        <div className="pt-4 border-t border-slate-800/80 space-y-3">
-          {isSidebarOpen && (
-            <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
-              <div className="flex items-center gap-1.5 text-indigo-400 text-[11px] font-semibold mb-0.5">
-                <Sparkles className="w-3.5 h-3.5 shrink-0" /> Supabase Realtime
-              </div>
-              <p className="text-[10px] text-slate-400 leading-tight">Database state synchronized across nodes.</p>
-            </div>
-          )}
-
+        <div className="pt-4 border-t border-slate-800/80">
           <button
             onClick={handleSignOut}
             title={!isSidebarOpen ? "Sign Out" : undefined}
