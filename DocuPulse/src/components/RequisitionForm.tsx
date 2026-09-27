@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { 
   PlusCircle, Clock, Send, X, Tag, FolderKanban, CheckCircle2 
 } from 'lucide-react';
@@ -9,23 +10,13 @@ interface Requisition {
   category: string;
   priority: string;
   description: string;
-  timestamp: string;
+  created_at?: string;
   status: string;
 }
 
 export default function RequisitionForm() {
-  const [requisitions, setRequisitions] = useState<Requisition[]>([
-    {
-      id: 'REQ-2026-001',
-      title: 'Equipment Procurement Request - IT Lab',
-      category: 'Equipment / Hardware',
-      priority: 'High',
-      description: 'Request for additional lab equipment for the IT241 course.',
-      timestamp: '2026-09-27 14:30:12',
-      status: 'Submitted'
-    }
-  ]);
-
+  const [requisitions, setRequisitions] = useState<Requisition[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reqTitle, setReqTitle] = useState('');
   const [reqCategory, setReqCategory] = useState('Document Approval');
@@ -34,7 +25,24 @@ export default function RequisitionForm() {
   const [formError, setFormError] = useState('');
   const [confirmationMsg, setConfirmationMsg] = useState<{ id: string; timestamp: string; title: string } | null>(null);
 
-  const handleRequisitionSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchRequisitions();
+  }, []);
+
+  const fetchRequisitions = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('requisitions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setRequisitions(data);
+    }
+    setLoading(false);
+  };
+
+  const handleRequisitionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -45,27 +53,53 @@ export default function RequisitionForm() {
 
     const randomNum = Math.floor(100 + Math.random() * 900);
     const newReqId = `REQ-2026-${randomNum}`;
-    const now = new Date();
-    const formattedTimestamp = now.toISOString().replace('T', ' ').substring(0, 19);
 
-    const newRequisition: Requisition = {
+    const newPayload = {
       id: newReqId,
-      title: reqTitle,
+      title: reqTitle.trim(),
       category: reqCategory,
       priority: reqPriority,
-      description: reqDescription,
-      timestamp: formattedTimestamp,
+      description: reqDescription.trim(),
+      requestor: 'Jose Mirador',
+      department: 'College of Computing & Information Technologies',
+      workflow_stage: 'Submitted',
       status: 'Submitted'
     };
 
-    setRequisitions([newRequisition, ...requisitions]);
-    setConfirmationMsg({ id: newReqId, timestamp: formattedTimestamp, title: reqTitle });
+    const { data, error } = await supabase
+      .from('requisitions')
+      .insert([newPayload])
+      .select();
 
-    setReqTitle('');
-    setReqCategory('Document Approval');
-    setReqPriority('Medium');
-    setReqDescription('');
-    setIsModalOpen(false);
+    if (error) {
+      setFormError(`Database error: ${error.message}`);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const inserted = data[0];
+      setRequisitions([inserted, ...requisitions]);
+      setConfirmationMsg({ 
+        id: inserted.id, 
+        timestamp: new Date(inserted.created_at || Date.now()).toLocaleString(), 
+        title: inserted.title 
+      });
+
+      await supabase.from('notifications').insert([{
+        requisition_id: inserted.id,
+        title: inserted.title,
+        previous_stage: 'Draft',
+        new_stage: 'Submitted',
+        message: 'Your requisition form was submitted and received by the system.',
+        type: 'stage_change'
+      }]);
+
+      setReqTitle('');
+      setReqCategory('Document Approval');
+      setReqPriority('Medium');
+      setReqDescription('');
+      setIsModalOpen(false);
+    }
   };
 
   return (
@@ -73,7 +107,7 @@ export default function RequisitionForm() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">DP-01: Digital Requisition Submission</h1>
-          <p className="text-xs text-slate-400">Submit new requisition forms digitally without manual processing.</p>
+          <p className="text-xs text-slate-400">Submit new requisition forms digitally linked to Supabase storage.</p>
         </div>
         
         <button
@@ -89,12 +123,12 @@ export default function RequisitionForm() {
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-400" />
             <div>
-              <p className="font-semibold text-emerald-300 text-sm">Requisition Submitted Successfully!</p>
+              <p className="font-semibold text-emerald-300 text-sm">Requisition Persisted to Supabase!</p>
               <p className="mt-1 text-slate-300">
                 Requisition ID: <span className="font-mono text-emerald-400 font-bold">{confirmationMsg.id}</span>
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Recorded Timestamp: <span className="font-mono text-slate-300">{confirmationMsg.timestamp}</span>
+                Timestamp: <span className="font-mono text-slate-300">{confirmationMsg.timestamp}</span>
               </p>
             </div>
           </div>
@@ -114,44 +148,48 @@ export default function RequisitionForm() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider border-b border-slate-800">
-              <tr>
-                <th className="px-6 py-3.5">Requisition ID</th>
-                <th className="px-6 py-3.5">Title & Description</th>
-                <th className="px-6 py-3.5">Category</th>
-                <th className="px-6 py-3.5">Submission Timestamp</th>
-                <th className="px-6 py-3.5">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {requisitions.map((req) => (
-                <tr key={req.id} className="hover:bg-slate-800/30 transition">
-                  <td className="px-6 py-4 font-mono font-semibold text-indigo-400">{req.id}</td>
-                  <td className="px-6 py-4 max-w-xs">
-                    <p className="font-medium text-white">{req.title}</p>
-                    <p className="text-[11px] text-slate-400 truncate mt-0.5">{req.description}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 text-slate-300 rounded-lg text-[11px]">
-                      <Tag className="w-3 h-3 text-slate-400" /> {req.category}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-[11px] text-slate-400">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-slate-500" />
-                      {req.timestamp}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-medium text-[11px]">
-                      {req.status}
-                    </span>
-                  </td>
+          {loading ? (
+            <div className="p-8 text-center text-xs text-slate-500">Loading requisitions from Supabase...</div>
+          ) : (
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-950/60 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th className="px-6 py-3.5">Requisition ID</th>
+                  <th className="px-6 py-3.5">Title & Description</th>
+                  <th className="px-6 py-3.5">Category</th>
+                  <th className="px-6 py-3.5">Created At</th>
+                  <th className="px-6 py-3.5">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {requisitions.map((req) => (
+                  <tr key={req.id} className="hover:bg-slate-800/30 transition">
+                    <td className="px-6 py-4 font-mono font-semibold text-indigo-400">{req.id}</td>
+                    <td className="px-6 py-4 max-w-xs">
+                      <p className="font-medium text-white">{req.title}</p>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">{req.description}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 text-slate-300 rounded-lg text-[11px]">
+                        <Tag className="w-3 h-3 text-slate-400" /> {req.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-[11px] text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-500" />
+                        {new Date(req.created_at || Date.now()).toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-medium text-[11px]">
+                        {req.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -163,7 +201,7 @@ export default function RequisitionForm() {
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <PlusCircle className="w-5 h-5 text-indigo-400" /> Digital Requisition Form
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">Fill in the details to submit a new requisition request.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Fill in details to save directly to Supabase.</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
                 <X className="w-5 h-5" />
@@ -232,7 +270,7 @@ export default function RequisitionForm() {
                   Cancel
                 </button>
                 <button type="submit" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
-                  <Send className="w-3.5 h-3.5" /> Submit Request
+                  <Send className="w-3.5 h-3.5" /> Save to Database
                 </button>
               </div>
             </form>
