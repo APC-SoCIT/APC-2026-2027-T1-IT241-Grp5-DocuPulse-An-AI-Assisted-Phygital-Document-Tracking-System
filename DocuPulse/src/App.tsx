@@ -3,10 +3,11 @@ import RequisitionForm from './components/RequisitionForm';
 import RequisitionValidation from './components/RequisitionValidation';
 import LogisticsProcessing from './components/LogisticsProcessing';
 import LogisticsDashboard from './components/LogisticsDashboard';
-import { FileText, CheckSquare, Send, Truck, LayoutDashboard } from 'lucide-react';
+import NotificationsFeed from './components/NotificationsFeed';
+import { FileText, CheckSquare, Send, Truck, LayoutDashboard, Bell } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dp01' | 'dp02' | 'dp11' | 'dp16'>('dp16');
+  const [activeTab, setActiveTab] = useState<'dp01' | 'dp02' | 'dp11' | 'dp16' | 'dp21'>('dp21');
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans">
@@ -18,6 +19,17 @@ export default function App() {
           </div>
 
           <nav className="space-y-1">
+            <button
+              onClick={() => setActiveTab('dp21')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                activeTab === 'dp21' 
+                  ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Bell className="w-4 h-4" /> DP-21 Notifications
+            </button>
+
             <button
               onClick={() => setActiveTab('dp16')}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
@@ -70,6 +82,7 @@ export default function App() {
       </aside>
 
       <main className="flex-1 overflow-y-auto p-6 md:p-8">
+        {activeTab === 'dp21' && <NotificationsFeed />}
         {activeTab === 'dp16' && <LogisticsDashboard />}
         {activeTab === 'dp01' && <RequisitionForm />}
         {activeTab === 'dp02' && <RequisitionValidation />}
