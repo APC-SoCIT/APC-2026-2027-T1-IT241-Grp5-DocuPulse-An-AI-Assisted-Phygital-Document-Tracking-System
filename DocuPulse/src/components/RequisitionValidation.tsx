@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  FileText, PlusCircle, Clock, Send, X, Tag, FolderKanban, CheckCircle2 
+  PlusCircle, Clock, Send, X, Tag, FolderKanban, CheckCircle2, AlertCircle, AlertTriangle 
 } from 'lucide-react';
 
 interface Requisition {
@@ -13,7 +13,7 @@ interface Requisition {
   status: string;
 }
 
-export default function RequisitionForm() {
+export default function RequisitionValidation() {
   const [requisitions, setRequisitions] = useState<Requisition[]>([
     {
       id: 'REQ-2026-001',
@@ -22,7 +22,7 @@ export default function RequisitionForm() {
       priority: 'High',
       description: 'Request for additional lab equipment for the IT241 course.',
       timestamp: '2026-09-27 14:30:12',
-      status: 'Submitted'
+      status: 'Pending Dept Head Approval'
     }
   ]);
 
@@ -31,15 +31,37 @@ export default function RequisitionForm() {
   const [reqCategory, setReqCategory] = useState('Document Approval');
   const [reqPriority, setReqPriority] = useState('Medium');
   const [reqDescription, setReqDescription] = useState('');
-  const [formError, setFormError] = useState('');
+
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; description?: string }>({});
+  const [duplicateWarning, setDuplicateWarning] = useState('');
   const [confirmationMsg, setConfirmationMsg] = useState<{ id: string; timestamp: string; title: string } | null>(null);
 
   const handleRequisitionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
+    const errors: { title?: string; description?: string } = {};
+    setDuplicateWarning('');
 
-    if (!reqTitle.trim() || !reqDescription.trim()) {
-      setFormError('Please fill in all required fields (Title and Description).');
+    if (!reqTitle.trim()) {
+      errors.title = 'Requisition title is required.';
+    }
+
+    if (!reqDescription.trim()) {
+      errors.description = 'Detailed description is required.';
+    } else if (reqDescription.trim().length < 15) {
+      errors.description = 'Description must be at least 15 characters long.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    const isDuplicate = requisitions.some(
+      (item) => item.title.trim().toLowerCase() === reqTitle.trim().toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setDuplicateWarning('Duplicate Submission Detected: A requisition with this exact title already exists.');
       return;
     }
 
@@ -50,12 +72,12 @@ export default function RequisitionForm() {
 
     const newRequisition: Requisition = {
       id: newReqId,
-      title: reqTitle,
+      title: reqTitle.trim(),
       category: reqCategory,
       priority: reqPriority,
-      description: reqDescription,
+      description: reqDescription.trim(),
       timestamp: formattedTimestamp,
-      status: 'Submitted'
+      status: 'Pending Dept Head Approval'
     };
 
     setRequisitions([newRequisition, ...requisitions]);
@@ -65,6 +87,8 @@ export default function RequisitionForm() {
     setReqCategory('Document Approval');
     setReqPriority('Medium');
     setReqDescription('');
+    setFieldErrors({});
+    setDuplicateWarning('');
     setIsModalOpen(false);
   };
 
@@ -72,15 +96,15 @@ export default function RequisitionForm() {
     <div className="max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">DP-01: Digital Requisition Submission</h1>
-          <p className="text-xs text-slate-400">Submit new requisition forms digitally without manual processing.</p>
+          <h1 className="text-2xl font-bold text-white">DP-02: Automated Form Validation</h1>
+          <p className="text-xs text-slate-400">Entry-level validation checks for completeness and duplicate titles.</p>
         </div>
         
         <button
-          onClick={() => { setIsModalOpen(true); setFormError(''); }}
+          onClick={() => { setIsModalOpen(true); setFieldErrors({}); setDuplicateWarning(''); }}
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition"
         >
-          <PlusCircle className="w-4 h-4" /> Submit Requisition
+          <PlusCircle className="w-4 h-4" /> Validate & Submit
         </button>
       </div>
 
@@ -89,12 +113,12 @@ export default function RequisitionForm() {
           <div className="flex items-start gap-3">
             <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-400" />
             <div>
-              <p className="font-semibold text-emerald-300 text-sm">Requisition Submitted Successfully!</p>
+              <p className="font-semibold text-emerald-300 text-sm">Validation Passed & Requisition Submitted!</p>
               <p className="mt-1 text-slate-300">
                 Requisition ID: <span className="font-mono text-emerald-400 font-bold">{confirmationMsg.id}</span>
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Recorded Timestamp: <span className="font-mono text-slate-300">{confirmationMsg.timestamp}</span>
+                Routed To: <span className="text-indigo-300 font-medium">Department Head Approval</span> • Timestamp: <span className="font-mono text-slate-300">{confirmationMsg.timestamp}</span>
               </p>
             </div>
           </div>
@@ -108,7 +132,7 @@ export default function RequisitionForm() {
         <div className="p-4 border-b border-slate-800 flex items-center justify-between">
           <h2 className="font-semibold text-sm text-white flex items-center gap-2">
             <FolderKanban className="w-4 h-4 text-indigo-400" />
-            Submitted Requisitions
+            Validated Requisitions
           </h2>
           <span className="text-xs text-slate-400">{requisitions.length} Total</span>
         </div>
@@ -144,7 +168,7 @@ export default function RequisitionForm() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-medium text-[11px]">
+                    <span className="px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full font-medium text-[11px]">
                       {req.status}
                     </span>
                   </td>
@@ -163,15 +187,18 @@ export default function RequisitionForm() {
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <PlusCircle className="w-5 h-5 text-indigo-400" /> Digital Requisition Form
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">Fill in the details to submit a new requisition request.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Automated checks will validate completeness before processing.</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {formError && (
-              <p className="mb-4 text-xs text-red-400 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20">{formError}</p>
+            {duplicateWarning && (
+              <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs rounded-xl flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>{duplicateWarning}</span>
+              </div>
             )}
 
             <form onSubmit={handleRequisitionSubmit} className="space-y-4">
@@ -179,11 +206,21 @@ export default function RequisitionForm() {
                 <label className="block text-xs font-medium text-slate-300 mb-1">Requisition Title *</label>
                 <input
                   type="text"
-                  placeholder="e.g. Clearance Certificate Verification Request"
+                  placeholder="e.g. Equipment Procurement Request - IT Lab"
                   value={reqTitle}
-                  onChange={(e) => setReqTitle(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                  onChange={(e) => {
+                    setReqTitle(e.target.value);
+                    if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: undefined });
+                  }}
+                  className={`w-full bg-slate-950 border rounded-xl py-2.5 px-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition ${
+                    fieldErrors.title ? 'border-red-500 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
+                  }`}
                 />
+                {fieldErrors.title && (
+                  <p className="text-[11px] text-red-400 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.title}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -220,11 +257,21 @@ export default function RequisitionForm() {
                 <label className="block text-xs font-medium text-slate-300 mb-1">Detailed Description *</label>
                 <textarea
                   rows={3}
-                  placeholder="Describe the purpose of this requisition..."
+                  placeholder="Describe the purpose of this requisition in detail..."
                   value={reqDescription}
-                  onChange={(e) => setReqDescription(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                  onChange={(e) => {
+                    setReqDescription(e.target.value);
+                    if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: undefined });
+                  }}
+                  className={`w-full bg-slate-950 border rounded-xl py-2 px-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition ${
+                    fieldErrors.description ? 'border-red-500 bg-red-500/5' : 'border-slate-800 focus:border-indigo-500'
+                  }`}
                 />
+                {fieldErrors.description && (
+                  <p className="text-[11px] text-red-400 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {fieldErrors.description}
+                  </p>
+                )}
               </div>
 
               <div className="pt-2 flex gap-3">
@@ -232,7 +279,7 @@ export default function RequisitionForm() {
                   Cancel
                 </button>
                 <button type="submit" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
-                  <Send className="w-3.5 h-3.5" /> Submit Request
+                  <Send className="w-3.5 h-3.5" /> Validate & Submit
                 </button>
               </div>
             </form>
