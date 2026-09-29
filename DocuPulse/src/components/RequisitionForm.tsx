@@ -14,7 +14,18 @@ interface Requisition {
   status: string;
 }
 
-export default function RequisitionForm() {
+export interface RequisitionFormProps {
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  };
+  onClose?: () => void;
+  onSuccess?: () => void | Promise<void>;
+}
+
+export default function RequisitionForm({ user, onClose, onSuccess }: RequisitionFormProps) {
   const [requisitions, setRequisitions] = useState<Requisition[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,6 +53,14 @@ export default function RequisitionForm() {
     setLoading(false);
   };
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      setIsModalOpen(false);
+    }
+  };
+
   const handleRequisitionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
@@ -60,10 +79,12 @@ export default function RequisitionForm() {
       category: reqCategory,
       priority: reqPriority,
       description: reqDescription.trim(),
-      requestor: 'Jose Mirador',
+      requestor_id: user?.id || null,
+      requestor: user?.name || 'Jose Mirador',
+      requestor_email: user?.email || '',
       department: 'College of Computing & Information Technologies',
       workflow_stage: 'Submitted',
-      status: 'Submitted'
+      status: 'pending_dh'
     };
 
     const { data, error } = await supabase
@@ -98,9 +119,105 @@ export default function RequisitionForm() {
       setReqCategory('Document Approval');
       setReqPriority('Medium');
       setReqDescription('');
-      setIsModalOpen(false);
+
+      if (onSuccess) {
+        await onSuccess();
+      }
+
+      handleClose();
     }
   };
+
+  const renderFormContent = () => (
+    <div className="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+      <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <PlusCircle className="w-5 h-5 text-indigo-400" /> Digital Requisition Form
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">Fill in details to save directly to Supabase.</p>
+        </div>
+        <button onClick={handleClose} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {formError && (
+        <p className="mb-4 text-xs text-red-400 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20">{formError}</p>
+      )}
+
+      <form onSubmit={handleRequisitionSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1">Requisition Title *</label>
+          <input
+            type="text"
+            placeholder="e.g. Clearance Certificate Verification Request"
+            value={reqTitle}
+            onChange={(e) => setReqTitle(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Category</label>
+            <select
+              value={reqCategory}
+              onChange={(e) => setReqCategory(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+            >
+              <option value="Document Approval">Document Approval</option>
+              <option value="Academic Record">Academic Record</option>
+              <option value="Equipment / Hardware">Equipment / Hardware</option>
+              <option value="Administrative Form">Administrative Form</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Priority</label>
+            <select
+              value={reqPriority}
+              onChange={(e) => setReqPriority(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+            >
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1">Detailed Description *</label>
+          <textarea
+            rows={3}
+            placeholder="Describe the purpose of this requisition..."
+            value={reqDescription}
+            onChange={(e) => setReqDescription(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+          />
+        </div>
+
+        <div className="pt-2 flex gap-3">
+          <button type="button" onClick={handleClose} className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+            Cancel
+          </button>
+          <button type="submit" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
+            <Send className="w-3.5 h-3.5" /> Save to Database
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  if (onClose) {
+    return (
+      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        {renderFormContent()}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto font-sans">
@@ -200,86 +317,7 @@ export default function RequisitionForm() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-              <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <PlusCircle className="w-5 h-5 text-indigo-400" /> Digital Requisition Form
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">Fill in details to save directly to Supabase.</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {formError && (
-              <p className="mb-4 text-xs text-red-400 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20">{formError}</p>
-            )}
-
-            <form onSubmit={handleRequisitionSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Requisition Title *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Clearance Certificate Verification Request"
-                  value={reqTitle}
-                  onChange={(e) => setReqTitle(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Category</label>
-                  <select
-                    value={reqCategory}
-                    onChange={(e) => setReqCategory(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
-                  >
-                    <option value="Document Approval">Document Approval</option>
-                    <option value="Academic Record">Academic Record</option>
-                    <option value="Equipment / Hardware">Equipment / Hardware</option>
-                    <option value="Administrative Form">Administrative Form</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Priority</label>
-                  <select
-                    value={reqPriority}
-                    onChange={(e) => setReqPriority(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Detailed Description *</label>
-                <textarea
-                  rows={3}
-                  placeholder="Describe the purpose of this requisition..."
-                  value={reqDescription}
-                  onChange={(e) => setReqDescription(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
-                />
-              </div>
-
-              <div className="pt-2 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
-                  <Send className="w-3.5 h-3.5" /> Save to Database
-                </button>
-              </div>
-            </form>
-          </div>
+          {renderFormContent()}
         </div>
       )}
     </div>

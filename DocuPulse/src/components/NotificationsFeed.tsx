@@ -16,19 +16,34 @@ interface NotificationItem {
   type: 'stage_change' | 'approval' | 'logistics' | 'alert';
 }
 
-export default function NotificationsFeed() {
+export interface NotificationsFeedProps {
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  };
+}
+
+export default function NotificationsFeed({ user }: NotificationsFeedProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
   useEffect(() => {
     fetchNotifications();
-  }, []);
+  }, [user?.id]);
 
   const fetchNotifications = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('notifications')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (user?.id) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data } = await query;
 
     if (data) setNotifications(data);
   };
