@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { BookOpen, CheckCircle2, XCircle, Paperclip, ShieldAlert } from 'lucide-react';
+import { BookOpen, CheckCircle2, XCircle, Paperclip } from 'lucide-react';
 
 interface LibraryRequisition {
   id: string;
