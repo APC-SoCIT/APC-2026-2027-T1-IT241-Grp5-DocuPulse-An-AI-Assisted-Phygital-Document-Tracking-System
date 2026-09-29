@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Lock, Mail, User, Shield, ArrowRight, KeyRound } from 'lucide-react';
+import { Lock, Mail, User, Shield, ArrowRight, KeyRound, Building2 } from 'lucide-react';
 
 interface AuthProps {
   onAuthSuccess: () => void;
@@ -12,6 +12,8 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('Jose Mirador');
   const [role, setRole] = useState<'Requestor' | 'Approver' | 'Logistics Officer'>('Requestor');
+  const [department, setDepartment] = useState('Information Technology');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +26,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     setLoading(true);
     const demoPassword = 'password123';
 
-    // 1. Try to sign in first
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: demoEmail,
       password: demoPassword,
@@ -36,14 +37,14 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
       return;
     }
 
-    // 2. If user doesn't exist, automatically register the demo account
     const { error: signUpError } = await supabase.auth.signUp({
       email: demoEmail,
       password: demoPassword,
       options: {
         data: {
           full_name: demoName,
-          role: demoRole
+          role: demoRole,
+          department: 'Information Technology'
         }
       }
     });
@@ -51,7 +52,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     if (signUpError) {
       setErrorMsg(`Demo Login Error: ${signUpError.message}`);
     } else {
-      // Sign in right after signup
       await supabase.auth.signInWithPassword({
         email: demoEmail,
         password: demoPassword,
@@ -64,6 +64,18 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (isSignUp) {
+      if (password.length < 6) {
+        setErrorMsg('Password requirements not met: Minimum length is 6 characters.');
+        return;
+      }
+      if (!termsAccepted) {
+        setErrorMsg('You must agree to the terms and institutional compliance agreement.');
+        return;
+      }
+    }
+
     setLoading(true);
 
     if (isSignUp) {
@@ -73,7 +85,8 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         options: {
           data: {
             full_name: fullName,
-            role: role
+            role: role,
+            department: department
           }
         }
       });
@@ -161,6 +174,23 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
               </div>
 
               <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Assigned Department</label>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                  <select
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                  >
+                    <option value="Information Technology">School of Information Technology (SoCIT)</option>
+                    <option value="Registrar">Registrar Office</option>
+                    <option value="Finance">Finance Department</option>
+                    <option value="Administration">Administration</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">Assigned System Role</label>
                 <div className="relative">
                   <Shield className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -179,13 +209,13 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Institutional Email</label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
               <input
                 type="email"
                 required
-                placeholder="admin@apc.edu.ph"
+                placeholder="name@apc.edu.ph"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
@@ -206,7 +236,25 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
               />
             </div>
+            {isSignUp && (
+              <p className="text-[10px] text-slate-500 mt-1">Must be at least 6 characters long with valid alphanumeric structure.</p>
+            )}
           </div>
+
+          {isSignUp && (
+            <div className="flex items-center gap-2 pt-1">
+              <input 
+                type="checkbox" 
+                id="terms" 
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-0"
+              />
+              <label htmlFor="terms" className="text-[11px] text-slate-400 select-none">
+                I agree to the institutional terms and compliance agreement.
+              </label>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -222,7 +270,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             onClick={() => setIsSignUp(!isSignUp)}
             className="text-xs text-slate-400 hover:text-indigo-400 transition"
           >
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Register"}
           </button>
         </div>
       </div>

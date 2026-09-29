@@ -1,123 +1,140 @@
-import { STAGE_SEQUENCE, type DbApprovalStep, type DbLocationScan } from "./lib/supabase";
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { Building2, Wallet, Truck, X } from 'lucide-react';
 
-interface Props {
-  status: string;
-  approvalSteps: DbApprovalStep[];
-  locationScans: DbLocationScan[];
-  currentLocation?: string | null;
+interface RequisitionChain {
+  id: string;
+  title: string;
+  department_head_status: string;
+  department_head_time?: string;
+  finance_status: string;
+  finance_time?: string;
+  logistics_status: string;
+  logistics_time?: string;
 }
 
-const STAGE_COLORS: Record<string, string> = {
-  "Department Head": "#ffbe3d",
-  "Finance":         "#5b8fff",
-  "Logistics":       "#2ee89a",
-  "Complete":        "#2ee89a",
-  "Rejected":        "#ff6b6b",
-};
+export default function ApprovalTimeline() {
+  const [requisitions, setRequisitions] = useState<RequisitionChain[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReq, setSelectedReq] = useState<RequisitionChain | null>(null);
 
-function fmt(ts: string) {
-  return new Date(ts).toLocaleString("en-PH", {
-    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
-  });
-}
+  useEffect(() => {
+    fetchChainData();
+  }, []);
 
-export default function ApprovalTimeline({ status, approvalSteps, locationScans, currentLocation }: Props) {
-  const isApproved = status === "approved";
-  const isRejected = status === "rejected";
+  const fetchChainData = async () => {
+    const { data, error } = await supabase
+      .from('requisitions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setRequisitions(data);
+    }
+    setLoading(false);
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+    <div className="max-w-5xl mx-auto font-sans text-slate-100 p-4">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white">Approval Chain & Workflow Tracking (DP-06)</h1>
+        <p className="text-xs text-slate-400">View Department Head approval, Finance status, Logistics processing, and timestamps[cite: 8].</p>
+      </div>
 
-      {/* ── Stage stepper ── */}
-      {STAGE_SEQUENCE.map((stage, idx) => {
-        const step = approvalSteps.find((s) => s.stage === stage);
-        const isDone     = step?.status === "Approved";
-        const isFailed   = step?.status === "Rejected" || (isRejected && !step);
-        const isActive   = !isDone && !isFailed && status.toLowerCase().includes(stage.toLowerCase().split(" ")[0]);
-        const color      = isDone ? "#2ee89a" : isFailed ? "#ff6b6b" : isActive ? STAGE_COLORS[stage] : "#334155";
-        const isLast     = idx === STAGE_SEQUENCE.length - 1;
-
-        return (
-          <div key={stage} style={{ display: "flex", gap: 14, paddingBottom: isLast ? 0 : 22, position: "relative" }}>
-            {/* Connector line */}
-            {!isLast && (
-              <div style={{ position: "absolute", left: 11, top: 26, bottom: 0, width: 1.5, background: isDone ? "rgba(46,232,154,0.35)" : "rgba(91,143,255,0.1)" }} />
-            )}
-
-            {/* Node */}
-            <div style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, background: isDone ? "rgba(46,232,154,0.18)" : isFailed ? "rgba(255,107,107,0.15)" : isActive ? `${color}18` : "rgba(91,143,255,0.06)", border: `2px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: (isDone || isActive) ? `0 0 10px ${color}40` : "none", zIndex: 1 }}>
-              {isDone   && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#2ee89a" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-              {isFailed && <svg width="9"  height="9"  viewBox="0 0 9 9"  fill="none"><path d="M1.5 1.5l6 6M7.5 1.5l-6 6" stroke="#ff6b6b" strokeWidth="1.5" strokeLinecap="round"/></svg>}
-              {!isDone && !isFailed && <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, opacity: isActive ? 1 : 0.3 }} />}
-            </div>
-
-            {/* Content */}
-            <div style={{ flex: 1, paddingTop: 2 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                <p style={{ fontSize: 12.5, fontWeight: 600, color: isDone ? "#e8edf8" : isActive ? "var(--color-text)" : "#5c729a", letterSpacing: "-0.01em" }}>{stage} Review</p>
-                <span style={{ fontSize: 9, fontFamily: "var(--font-mono)", fontWeight: 700, padding: "2px 7px", borderRadius: 6, background: isDone ? "rgba(46,232,154,0.12)" : isFailed ? "rgba(255,107,107,0.12)" : isActive ? `${color}14` : "rgba(91,143,255,0.06)", color, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                  {isDone ? "Approved" : isFailed ? "Rejected" : isActive ? "In Progress" : "Queued"}
-                </span>
-              </div>
-
-              {step && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                  {step.action_by_name && (
-                    <p style={{ fontSize: 11, color: "#94a3b8" }}>
-                      <span style={{ color }}>{step.action_by_name}</span>{" "}
-                      {isDone ? "approved" : "rejected"} this stage
-                    </p>
-                  )}
-                  <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "#5c729a" }}>{fmt(step.updated_at)}</p>
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        {loading ? (
+          <div className="p-8 text-center text-xs text-slate-500">Loading approval chain data...</div>
+        ) : requisitions.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-500">No requisitions found.</div>
+        ) : (
+          <div className="divide-y divide-slate-800">
+            {requisitions.map((req) => (
+              <div key={req.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-800/30 transition">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-semibold text-indigo-400 text-xs">{req.id}</span>
+                    <h3 className="text-white text-sm font-medium">{req.title}</h3>
+                  </div>
+                  <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-indigo-400" /> Dept Head: <strong className="text-slate-200">{req.department_head_status || 'Pending'}</strong>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Wallet className="w-3.5 h-3.5 text-amber-400" /> Finance: <strong className="text-slate-200">{req.finance_status || 'Pending'}</strong>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Truck className="w-3.5 h-3.5 text-emerald-400" /> Logistics: <strong className="text-slate-200">{req.logistics_status || 'Pending'}</strong>
+                    </span>
+                  </div>
                 </div>
-              )}
-
-              {!step && isActive && (
-                <p style={{ fontSize: 11, color: "#5c729a" }}>Awaiting reviewer action</p>
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Final approved marker */}
-      {isApproved && (
-        <div style={{ display: "flex", gap: 14, marginTop: 4 }}>
-          <div style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,rgba(46,232,154,0.25),rgba(46,232,154,0.1))", border: "2px solid #2ee89a", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 14px rgba(46,232,154,0.5)" }}>
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1.5 5.5l2.5 3 5.5-6" stroke="#2ee89a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </div>
-          <div style={{ flex: 1, paddingTop: 3 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#2ee89a" }}>Fully Approved</p>
-            <p style={{ fontSize: 11, color: "#5c729a" }}>All stages cleared — document processed</p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Location log ── */}
-      {locationScans.length > 0 && (
-        <div style={{ marginTop: 20, borderRadius: 12, background: "rgba(8,11,24,0.6)", border: "1px solid rgba(91,143,255,0.1)", overflow: "hidden" }}>
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(91,143,255,0.07)", display: "flex", alignItems: "center", gap: 7 }}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="5" r="2.5" stroke="#22d3ee" strokeWidth="1.2"/><path d="M6 1a4 4 0 014 4c0 3-4 7-4 7S2 8 2 5a4 4 0 014-4z" stroke="#22d3ee" strokeWidth="1.2"/></svg>
-            <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "#22d3ee", letterSpacing: "0.1em", textTransform: "uppercase" }}>Location Log</p>
-            {currentLocation && (
-              <span style={{ marginLeft: "auto", fontSize: 10, fontFamily: "var(--font-mono)", color: "#2ee89a", background: "rgba(46,232,154,0.1)", padding: "2px 8px", borderRadius: 5, border: "1px solid rgba(46,232,154,0.2)" }}>
-                Now: {currentLocation}
-              </span>
-            )}
-          </div>
-          <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8, maxHeight: 180, overflowY: "auto" }}>
-            {[...locationScans].reverse().map((scan) => (
-              <div key={scan.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22d3ee", boxShadow: "0 0 5px #22d3ee", flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <span style={{ color: "#22d3ee" }}>{scan.location_tag}</span>
-                    {scan.scanned_by_name && <span style={{ color: "#5c729a" }}> · by {scan.scanned_by_name}</span>}
-                  </p>
-                </div>
-                <span style={{ fontSize: 9, fontFamily: "var(--font-mono)", color: "#334155", flexShrink: 0 }}>{fmt(scan.scanned_at)}</span>
+                <button
+                  onClick={() => setSelectedReq(req)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition"
+                >
+                  View Timeline
+                </button>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {selectedReq && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-white">Approval Chain Lifecycle[cite: 8]</h3>
+                <p className="text-[11px] font-mono text-indigo-400">{selectedReq.id}</p>
+              </div>
+              <button onClick={() => setSelectedReq(null)} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="flex items-start gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <Building2 className="w-5 h-5 text-indigo-400 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-white">1. Department Head Approval[cite: 8]</span>
+                    <span className="font-mono text-[10px] text-slate-400">{selectedReq.department_head_time || 'N/A'}[cite: 8]</span>
+                  </div>
+                  <p className="text-slate-400 mt-0.5">Status: <span className="text-indigo-300 font-medium">{selectedReq.department_head_status || 'Pending'}</span></p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <Wallet className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-white">2. Finance Approval[cite: 8]</span>
+                    <span className="font-mono text-[10px] text-slate-400">{selectedReq.finance_time || 'N/A'}[cite: 8]</span>
+                  </div>
+                  <p className="text-slate-400 mt-0.5">Status: <span className="text-amber-300 font-medium">{selectedReq.finance_status || 'Pending'}</span></p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <Truck className="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-white">3. Logistics Processing[cite: 8]</span>
+                    <span className="font-mono text-[10px] text-slate-400">{selectedReq.logistics_time || 'N/A'}[cite: 8]</span>
+                  </div>
+                  <p className="text-slate-400 mt-0.5">Status: <span className="text-emerald-300 font-medium">{selectedReq.logistics_status || 'Pending'}</span></p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                onClick={() => setSelectedReq(null)}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition"
+              >
+                Close Timeline
+              </button>
+            </div>
           </div>
         </div>
       )}
