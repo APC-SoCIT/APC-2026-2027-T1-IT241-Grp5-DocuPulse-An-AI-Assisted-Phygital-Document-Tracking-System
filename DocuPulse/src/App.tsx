@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import RequisitionForm from './components/RequisitionForm';
 import RequisitionValidation from './components/RequisitionValidation';
-import LogisticsProcessing from './components/LogisticsProcessing';
+import LogisticsProcessing from './components/DepartmentReview';
 import LogisticsDashboard from './components/LogisticsDashboard';
 import NotificationsFeed from './components/NotificationsFeed';
 import Auth from './components/Auth';

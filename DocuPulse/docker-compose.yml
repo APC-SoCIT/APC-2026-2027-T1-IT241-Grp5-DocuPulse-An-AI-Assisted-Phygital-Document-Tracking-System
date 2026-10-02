@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  docupulse:
+    build: .
+    container_name: docupulse_app
+    restart: always
+    ports:
+      - "3000:80"
