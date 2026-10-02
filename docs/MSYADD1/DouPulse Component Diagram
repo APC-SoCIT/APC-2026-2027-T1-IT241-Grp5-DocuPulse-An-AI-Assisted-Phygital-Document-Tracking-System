@@ -1,77 +1,74 @@
-@startuml RequisitionSystemComponent
+@startuml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 
-' Diagram Title
-title Component Diagram for Requisition system
+' --- LAYOUT & STYLING SETTINGS ---
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 50
+skinparam packageStyle rectangle
+skinparam WrapWidth 180
 
-' ACTORS / PERSONS
-Person(requestor, "Requestor", "Creates and manages requisitions, tracks status, and receives notifications.")
-Person(dept_head, "Department Head", "Reviews, endorses, and approves submitted requisitions.")
-Person(exec_director, "Executive Director", "Reviews and grants final approval on requisitions.")
-Person(finance, "Finance", "Reviews and approves requisitions from a budget/finance standpoint.")
-Person(logistics, "Logistics", "Views approved requisitions and processes fulfillment/delivery.")
+title Component Diagram - DocuPulse Backend API (Level 3)
 
-' WEB PORTAL (placed directly under Persons - primary entry point for all actors)
-Container(web_app, "Web Portal", "React + Vite, hosted on Vercel", "SPA used by all actors to interact with the system.")
+' --- EXTERNAL CONTAINERS (Simplified Top & Bottom Anchors) ---
+Container(web_portal, "Web Portal", "React + Vite", "Single entry point for all API requests")
+Container(auth_service, "Auth Service", "Supabase Auth", "Validates user JWT tokens")
 
-' EXTERNAL CONTAINERS / SYSTEMS
-Container(auth_service, "Auth Service", "Supabase Auth", "Handles authentication and role-based access control.")
-ContainerDb(database, "Requisition Database", "Supabase (PostgreSQL)", "Stores requisitions, approvals, statuses, and audit logs.")
-Container(notification_service, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes real-time status updates to users.")
-System_Ext(ai_system, "AI System", "External AI service that analyzes and routes requisitions.")
-
-Container_Boundary(api_app, "Requisition API (Node.js REST API)") {
-
-    Component(requisition_controller, "Requisition Controller", "Express Router", "Exposes REST endpoints for creating, viewing, and updating requisitions.")
-
-    Component(requisition_service_comp, "Requisition Service", "Node.js Module", "Core business logic for creating and managing requisitions (maps to 'Manage Requisition').")
-
-    Component(approval_workflow_comp, "Approval Workflow Component", "Node.js Module", "Manages the endorse/approve sequence across Department Head, Executive Director, and Finance (maps to 'Review/Endorse/Approve' and 'Review/Approve').")
-
-    Component(processing_comp, "Requisition Processing Component", "Node.js Module", "Handles post-approval processing and fulfillment routing to Logistics (maps to 'Process Requisition').")
-
-    Component(ai_routing_comp, "AI Routing Component", "Node.js Module", "Sends requisitions to the external AI System for analysis and receives routing recommendations (maps to 'AI Analysis & Routing').")
-
-    Component(notification_trigger_comp, "Notification Trigger Component", "Node.js Module", "Publishes status-change events for the Notification Service (maps to 'Receive Notifications of Status').")
-
-    Component(auth_middleware, "Auth Middleware", "Express Middleware", "Validates JWTs from Supabase Auth and enforces role-based access on API routes.")
-
-    Component(data_access_comp, "Data Access Layer", "Supabase Client Library", "Handles all reads/writes to the Requisition Database.")
-
+' --- CONTAINER BOUNDARY: BACKEND API ---
+Container_Boundary(requisition_api, "Requisition API (Node.js REST API)") {
+    
+    ' Layer 1: Entry Controller & Auth
+    Component(req_controller, "Requisition Controller", "Express Router", "Exposes REST endpoints")
+    Component(auth_middleware, "Auth Middleware", "Express Middleware", "Validates tokens & enforces RBAC")
+    
+    ' Layer 2: Core Domain Logic
+    Component(req_service, "Requisition Service", "Node.js Module", "Core business logic for submissions")
+    Component(approval_workflow, "Approval Workflow Component", "Node.js Module", "Manages approve/endorse sequence")
+    Component(req_processing, "Requisition Processing Component", "Node.js Module", "Handles Logistics fulfillment")
+    Component(ai_routing, "AI Routing Component", "Node.js Module", "Formats AI payload & handles routing logic")
+    
+    ' Layer 3: Data Access & Events
+    Component(data_access, "Data Access Layer", "Supabase Client", "Handles database operations")
+    Component(notification_trigger, "Notification Trigger", "Node.js Module", "Publishes status change events")
 }
 
-' INTERACTIONS & RELATIONSHIPS
+' --- EXTERNAL INFRASTRUCTURE & SERVICES ---
+ContainerDb(db, "Requisition Database", "Supabase PostgreSQL", "Stores requests & audit logs")
+Container(notification_svc, "Notification Service", "Supabase Realtime", "Pushes WebSocket notifications")
+System_Ext(ai_system, "External AI System", "Performs anomaly detection & smart routing")
 
-' Actor -> Web Portal (all actors connect to the Web Portal, not directly to the API)
-Rel(requestor, web_app, "Creates/manages requisitions via", "HTTPS")
-Rel(dept_head, web_app, "Reviews/endorses/approves via", "HTTPS")
-Rel(exec_director, web_app, "Reviews/approves via", "HTTPS")
-Rel(finance, web_app, "Reviews/approves via", "HTTPS")
-Rel(logistics, web_app, "Views/processes requisitions via", "HTTPS")
+' --- LAYOUT ALIGNMENT HINTS (Forces Linear Hierarchy) ---
+web_portal -[hidden]down-> req_controller
+req_controller -[hidden]down-> req_service
+req_service -[hidden]down-> data_access
+data_access -[hidden]down-> db
 
-' Web Portal -> API components
-Rel(web_app, requisition_controller, "Makes API calls to", "JSON/HTTPS")
+' --- RELATIONSHIP ARROWS ---
+' 1. Entry point
+Rel_D(web_portal, req_controller, "HTTPS / REST API")
+Rel_R(req_controller, auth_middleware, "Passes request")
+Rel_U(auth_middleware, auth_service, "Validates JWT", "HTTPS")
 
-' Controller routing
-Rel(requisition_controller, auth_middleware, "Passes requests through")
-Rel(auth_middleware, auth_service, "Validates tokens with", "HTTPS")
-Rel(requisition_controller, requisition_service_comp, "Routes create/manage requests to")
-Rel(requisition_controller, approval_workflow_comp, "Routes review/endorse/approve requests to")
-Rel(requisition_controller, processing_comp, "Routes processing requests to")
+' 2. Controller routing to services
+Rel_D(req_controller, req_service, "Directs create/view")
+Rel_D(req_controller, approval_workflow, "Directs approvals")
+Rel_D(req_controller, req_processing, "Directs fulfillment")
 
-' Internal component collaboration
-Rel(requisition_service_comp, data_access_comp, "Reads/writes requisition data via")
-Rel(approval_workflow_comp, data_access_comp, "Reads/writes approval status via")
-Rel(processing_comp, data_access_comp, "Reads/writes processing status via")
-Rel(approval_workflow_comp, ai_routing_comp, "Requests routing recommendation from")
-Rel(ai_routing_comp, ai_system, "Sends requisition data to / receives recommendation from", "API Calls")
+' 3. Domain Logic connections
+Rel_R(approval_workflow, ai_routing, "Requests evaluation")
+Rel_R(ai_routing, ai_system, "Sends payload", "JSON API")
 
-Rel(requisition_service_comp, notification_trigger_comp, "Triggers notification on requisition update")
-Rel(approval_workflow_comp, notification_trigger_comp, "Triggers notification on status change")
-Rel(processing_comp, notification_trigger_comp, "<<extend>>")
-Rel(notification_trigger_comp, notification_service, "Publishes status events to", "Internal API / Realtime Channel")
+' 4. Data & Notification Triggers
+Rel_D(req_service, data_access, "Reads/Writes")
+Rel_D(approval_workflow, data_access, "Updates status")
+Rel_D(req_processing, data_access, "Logs processing")
 
-' Data layer to database
-Rel(data_access_comp, database, "Reads from and writes to", "SQL/TCP")
+Rel_R(approval_workflow, notification_trigger, "Triggers event")
+Rel_R(req_processing, notification_trigger, "Triggers event")
+
+' 5. External DB & Realtime Outputs
+Rel_D(data_access, db, "SQL Queries", "TCP")
+Rel_D(notification_trigger, notification_svc, "Publishes event")
+Rel_U(notification_svc, web_portal, "Pushes updates", "WebSocket")
 
 @enduml

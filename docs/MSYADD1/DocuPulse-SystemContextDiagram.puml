@@ -1,34 +1,24 @@
-@startuml RequisitionSystemContext
+@startuml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
 
-' Diagram Title
-title System Context Diagram for Requisition Management System
+skinparam packageStyle rectangle
+title System Context Diagram - DocuPulse (Requisition Management System)
 
-' ACTORS / PERSONS
-Person(requestor, "Requestor", "Creates and manages requisitions,and receives notifications of status.")
-Person(dept_head, "Department Head", "Reviews, endorses, and approves submitted requisitions.")
-Person(exec_director, "Executive Director", "Reviews and grants final approval on requisitions.")
+Person(requestor, "Requestor", "Creates and manages requisitions, and receives notifications of status.")
+Person(department_head, "Department Head", "Reviews, endorses, and approves submitted requisitions.")
+Person(executive_director, "Executive Director", "Reviews and grants final approval on requisitions.")
 Person(finance, "Finance", "Reviews and approves requisitions from a budget/finance standpoint.")
-Person(logistics, "Logistics", "Views approved requisitions and processes requisitions.")
+Person(logistics, "Logistics", "Views approved requisitions and processes requisitions fulfillment/delivery.")
 
-' MAIN SYSTEM
-System(requisition_system, "Requisition Management System", "Central system for creating, routing, reviewing, approving, and processing requisitions.")
+System(ecosystem, "Requisition Management System (DocuPulse)", "Central system for creating, routing, reviewing, approving, and processing requisitions.")
 
-' EXTERNAL SYSTEMS
-System_Ext(ai_system, "AI System", "Ai Analysis & Routing.")
+System_Ext(ai_system, "AI System", "External AI service that analyzes requisitions and routes them to the appropriate approver.")
 
-' INTERACTIONS & RELATIONSHIPS
+Rel(requestor, ecosystem, "Submits and manages requisitions, receives status notifications", "Web Portal / HTTPS")
+Rel(department_head, ecosystem, "Reviews, endorses and approves requisitions", "Web Portal / HTTPS")
+Rel(executive_director, ecosystem, "Reviews and approves requisitions", "Web Portal / HTTPS")
+Rel(finance, ecosystem, "Reviews and approves requisitions", "Web Portal / HTTPS")
+Rel(logistics, ecosystem, "Views approvals and processes requisitions", "Web Portal / HTTPS")
+Rel(ecosystem, ai_system, "Sends requisitions for AI analysis and routing", "API Calls")
 
-' Primary User Interactions
-Rel(requestor, requisition_system, "Submits and manages requisitions, receives status notifications", "Web Portal / HTTPS")
-Rel(dept_head, requisition_system, "Reviews, endorses, and approves requisitions", "Web Portal / HTTPS")
-Rel(exec_director, requisition_system, "Reviews and approves requisitions", "Web Portal / HTTPS")
-Rel(finance, requisition_system, "Reviews and approves requisitions", "Web Portal / HTTPS")
-Rel(logistics, requisition_system, "Views approvals and processes requisitions", "Web Portal / HTTPS")
-
-' Requisition System -> External System Interactions
-Rel(requisition_system, ai_system, "Sends requisitions for AI analysis and routing", "API Calls")
-
-@enduml 
-
-raw.githubusercontent.com 
+@enduml
