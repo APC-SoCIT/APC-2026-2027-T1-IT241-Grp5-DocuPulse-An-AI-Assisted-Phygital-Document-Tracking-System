@@ -1,0 +1,49 @@
+@startuml ActivityDiagram
+skinparam BackgroundColor #1e1e1e
+skinparam ActivityBackgroundColor #2d2d2d
+skinparam ActivityBorderColor #00adb5
+skinparam ActivityFontColor #ffffff
+skinparam ActivityFontSize 12
+skinparam SwimlaneTitleFontColor #ffffff
+skinparam SwimlaneBorderColor #444444
+skinparam PartitionBorderColor #444444
+skinparam ArrowColor #00adb5
+skinparam ArrowFontColor #cccccc
+
+|#252526|User / Actor|
+start
+:Submit Document Requisition;
+
+|#1e1e1e|DocuPulse System|
+:Validate Submission Parameters;
+
+if (Is Data Valid?) then (yes)
+  :Set Stage = 'Created';
+  :Generate Tracking Tag / ID;
+  
+  fork
+    :Create Notification Record;
+    :Push Live Alert via Realtime API;
+    |#252526|User / Actor|
+    :Receive In-App Alert;
+    |#1e1e1e|DocuPulse System|
+  fork again
+    |#2d2b00|Hardware / Arduino IoT|
+    repeat
+      :Listen for Physical Slot Movement;
+      :Detect Sensor Activation Payload;
+      |#1e1e1e|DocuPulse System|
+      :Update Requisition Stage & Logs;
+    repeat while (Is Workflow Completed?) is (no)
+  end fork
+
+  |#1e1e1e|DocuPulse System|
+  :Mark Requisition Status = 'Completed';
+  stop
+
+else (no)
+  |#1e1e1e|DocuPulse System|
+  :Display Validation Error;
+  end
+endif
+@enduml
