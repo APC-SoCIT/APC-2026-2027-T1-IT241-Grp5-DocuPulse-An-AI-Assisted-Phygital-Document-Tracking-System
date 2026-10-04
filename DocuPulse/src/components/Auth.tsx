@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from './lib/supabase';
+import { supabase } from '../lib/supabase';
 import { Lock, Mail, User, ArrowRight, Building2, ShieldCheck, UserCheck, KeyRound, Truck } from 'lucide-react';
 
 interface AuthProps {
@@ -103,7 +103,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-4">
+        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-3">
           <button
             type="button"
             onClick={() => handleTabSwitch('requestor')}
@@ -134,12 +134,12 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         </div>
 
         {activeTab === 'employee' && (
-          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/60 border border-slate-800/80 rounded-lg mb-4">
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/80 border border-slate-800/80 rounded-lg mb-4">
             <button
               type="button"
               onClick={() => setEmployeeSubRole('approver')}
               className={`py-1.5 text-[11px] font-medium rounded-md transition flex items-center justify-center gap-1 ${
-                employeeSubRole === 'approver' ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300' : 'text-slate-400 hover:text-slate-200'
+                employeeSubRole === 'approver' ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-semibold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <UserCheck className="w-3 h-3" /> Approver (Review)
@@ -148,7 +148,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
               type="button"
               onClick={() => setEmployeeSubRole('logistics')}
               className={`py-1.5 text-[11px] font-medium rounded-md transition flex items-center justify-center gap-1 ${
-                employeeSubRole === 'logistics' ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300' : 'text-slate-400 hover:text-slate-200'
+                employeeSubRole === 'logistics' ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-semibold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <Truck className="w-3 h-3" /> Logistics (Dispatch)
