@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Truck, Receipt, MonitorCheck, BookOpen, LogOut, FileText, CheckCircle, Clock, Shield, Plus, X, Loader2, RefreshCw, Bell, Trash2 } from 'lucide-react';
+import { User, Truck, Receipt, MonitorCheck, BookOpen, LogOut, FileText, CheckCircle, Clock, Shield, Plus, X, Loader2, RefreshCw, Bell, Trash2, Eye, QrCode, History, Search, Download } from 'lucide-react';
 
 interface DashboardProps {
   user: any;
@@ -13,6 +13,10 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedReqForPass, setSelectedReqForPass] = useState<any | null>(null);
+  const [selectedReqForHistory, setSelectedReqForHistory] = useState<any | null>(null);
+  const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   
   const [documentType, setDocumentType] = useState('Requisition Form');
   const [remarks, setRemarks] = useState('');
@@ -72,6 +76,22 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
   useEffect(() => {
     fetchRequisitions();
     fetchNotifications();
+
+    const channel = supabase
+      .channel('requestor-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'document_requisitions', filter: `requestor_id=eq.${user.id}` },
+        () => {
+          fetchRequisitions();
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user.id]);
 
   const toggleArrayItem = (list: string[], setList: (val: string[]) => void, item: string) => {
@@ -80,6 +100,19 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
     } else {
       setList([...list, item]);
     }
+  };
+
+  const handleOpenHistory = async (item: any) => {
+    setSelectedReqForHistory(item);
+    setLoadingHistory(true);
+    const { data } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .eq('requisition_id', item.id)
+      .order('created_at', { ascending: true });
+
+    if (data) setHistoryLogs(data);
+    setLoadingHistory(false);
   };
 
   const handleSubmitRequisition = async (e: React.FormEvent) => {
@@ -220,6 +253,7 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
                   <th className="pb-3 px-2">Form Type</th>
                   <th className="pb-3 px-2">Status</th>
                   <th className="pb-3 px-2">Date Submitted</th>
+                  <th className="pb-3 px-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
@@ -233,6 +267,22 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
                       </span>
                     </td>
                     <td className="py-3 px-2 text-slate-400">{new Date(item.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 px-2 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setSelectedReqForPass(item)}
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition"
+                        >
+                          <QrCode className="w-3.5 h-3.5" /> Pass
+                        </button>
+                        <button
+                          onClick={() => handleOpenHistory(item)}
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition"
+                        >
+                          <History className="w-3.5 h-3.5" /> Timeline
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -240,6 +290,58 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
           </div>
         )}
       </div>
+
+      {selectedReqForPass && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative text-center">
+            <button onClick={() => setSelectedReqForPass(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="text-sm font-bold text-white mb-1">Phygital Gate Pass</h3>
+            <p className="text-[11px] text-slate-400 mb-4">{selectedReqForPass.document_type}</p>
+            
+            <div className="p-4 bg-white rounded-2xl inline-block mb-3 border-4 border-indigo-500/30">
+              <div className="w-36 h-36 border-2 border-dashed border-slate-900 flex flex-col items-center justify-center font-mono text-[10px] text-slate-900 gap-1">
+                <QrCode className="w-20 h-20 text-slate-900" />
+                <span className="font-bold">{selectedReqForPass.tracking_number}</span>
+              </div>
+            </div>
+
+            <p className="font-mono text-indigo-400 font-bold text-sm tracking-wider mb-2">{selectedReqForPass.tracking_number}</p>
+            <p className="text-[10px] text-slate-400">Scan at Logistics dispatch lockers or campus guard stations for physical handoff.</p>
+          </div>
+        </div>
+      )}
+
+      {selectedReqForHistory && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative">
+            <button onClick={() => setSelectedReqForHistory(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="text-sm font-bold text-white mb-1">Chain of Custody Timeline</h3>
+            <p className="font-mono text-xs text-indigo-400 font-semibold mb-4">{selectedReqForHistory.tracking_number}</p>
+
+            {loadingHistory ? (
+              <div className="flex items-center justify-center py-8 text-xs text-slate-500 gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-indigo-500" /> Loading audit history...
+              </div>
+            ) : historyLogs.length === 0 ? (
+              <p className="text-xs text-slate-500 py-4 text-center">No history logs recorded yet.</p>
+            ) : (
+              <div className="space-y-3 relative pl-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
+                {historyLogs.map((log) => (
+                  <div key={log.id} className="relative text-xs">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500 absolute -left-[18px] top-1.5 ring-4 ring-slate-900" />
+                    <p className="font-semibold text-slate-200">{log.action}</p>
+                    <p className="text-[10px] text-slate-400">{log.location} • {new Date(log.created_at).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -640,6 +742,10 @@ function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [inspectingReq, setInspectingReq] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const fetchQueue = async () => {
     setLoading(true);
@@ -654,7 +760,31 @@ function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any
 
   useEffect(() => {
     fetchQueue();
-  }, []);
+
+    const channel = supabase
+      .channel(`staff-${roleName.toLowerCase().replace(/\s+/g, '-')}-realtime`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'document_requisitions' },
+        (payload) => {
+          setRequisitions(prev => [payload.new, ...prev]);
+          setToastMessage(`New entry received: ${payload.new.tracking_number}`);
+          setTimeout(() => setToastMessage(null), 4000);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'document_requisitions' },
+        (payload) => {
+          setRequisitions(prev => prev.map(item => item.id === payload.new.id ? payload.new : item));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [roleName]);
 
   const updateStatus = async (item: any, newStatus: string, actionLabel: string) => {
     setProcessingId(item.id);
@@ -690,21 +820,92 @@ function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any
     setProcessingId(null);
   };
 
+  const exportToCSV = () => {
+    if (filteredRequisitions.length === 0) return;
+
+    const headers = ["Tracking Number", "Department", "Document Type", "Status", "Date Submitted"];
+    const rows = filteredRequisitions.map(r => [
+      r.tracking_number,
+      `"${r.department}"`,
+      `"${r.document_type}"`,
+      r.status,
+      new Date(r.created_at).toLocaleDateString()
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${roleName.toLowerCase().replace(/\s+/g, '_')}_queue.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const filteredRequisitions = requisitions.filter(item => {
+    const matchesSearch = 
+      item.tracking_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.document_type.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative">
+      {toastMessage && (
+        <div className="absolute -top-12 right-0 bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-xl border border-indigo-400 flex items-center gap-2 animate-bounce">
+          <Bell className="w-4 h-4" /> {toastMessage}
+        </div>
+      )}
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
         <h3 className="text-sm font-bold text-slate-200">{roleName} Review Queue</h3>
-        <button onClick={fetchQueue} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs flex items-center gap-1 transition">
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh
-        </button>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search tracking # or dept..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition w-48"
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 transition cursor-pointer"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="Pending Review">Pending Review</option>
+            <option value="In Transit">In Transit</option>
+            <option value="Payment Cleared">Payment Cleared</option>
+            <option value="Library Cleared">Library Cleared</option>
+            <option value="Completed">Completed</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+
+          <button onClick={exportToCSV} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs flex items-center gap-1 transition">
+            <Download className="w-3.5 h-3.5" /> CSV
+          </button>
+
+          <button onClick={fetchQueue} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs flex items-center gap-1 transition">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-8 text-xs text-slate-500 gap-2">
           <Loader2 className="w-4 h-4 animate-spin text-indigo-500" /> Fetching pending requisitions...
         </div>
-      ) : requisitions.length === 0 ? (
-        <p className="text-xs text-slate-500 py-6 text-center">No requisitions in the queue.</p>
+      ) : filteredRequisitions.length === 0 ? (
+        <p className="text-xs text-slate-500 py-6 text-center">No requisitions matched your search filters.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -718,7 +919,7 @@ function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {requisitions.map((item) => (
+              {filteredRequisitions.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-800/30 transition">
                   <td className="py-3 px-2 font-mono text-cyan-400 font-semibold">{item.tracking_number}</td>
                   <td className="py-3 px-2 text-slate-300">{item.department}</td>
@@ -730,6 +931,12 @@ function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any
                   </td>
                   <td className="py-3 px-2 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setInspectingReq(item)}
+                        className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Inspect
+                      </button>
                       <button
                         onClick={() => updateStatus(item, actionLabels.secondaryStatus, actionLabels.secondary)}
                         disabled={processingId === item.id}
@@ -750,6 +957,40 @@ function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {inspectingReq && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl relative max-h-[85vh] overflow-y-auto">
+            <button onClick={() => setInspectingReq(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="text-sm font-bold text-white mb-0.5">{inspectingReq.document_type}</h3>
+            <p className="font-mono text-xs text-cyan-400 font-semibold mb-4">{inspectingReq.tracking_number}</p>
+
+            <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-xs space-y-3 mb-4">
+              <p className="text-slate-400"><strong className="text-slate-200">Department:</strong> {inspectingReq.department}</p>
+              <p className="text-slate-400"><strong className="text-slate-200">Date Filed:</strong> {new Date(inspectingReq.created_at).toLocaleString()}</p>
+              <p className="text-slate-400"><strong className="text-slate-200">Remarks:</strong> {inspectingReq.remarks || 'None'}</p>
+
+              <div className="pt-2 border-t border-slate-800">
+                <p className="font-bold text-slate-200 mb-2">Form Data Payload:</p>
+                <pre className="p-3 bg-slate-900 rounded-xl text-[11px] font-mono text-cyan-300 overflow-x-auto whitespace-pre-wrap">
+                  {JSON.stringify(inspectingReq.processing_remarks?.[0] || {}, null, 2)}
+                </pre>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => setInspectingReq(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+              >
+                Close Inspection
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
