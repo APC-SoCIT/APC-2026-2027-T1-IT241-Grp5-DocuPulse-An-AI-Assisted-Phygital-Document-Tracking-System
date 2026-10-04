@@ -1,8 +1,7 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import apcLogo from "@/imports/apc-logo.png-removebg-preview.png";
 import docupulseLogo from "@/imports/image-removebg-preview.png";
 import { supabase } from "./lib/supabase";
-import SignUp from "./SignUp";
 
 export type Role = "admin" | "user" | "logistics";
 export interface AuthUser {
@@ -14,9 +13,9 @@ export interface AuthUser {
 
 function passwordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
-  if (pw.length >= 8)      score++;
-  if (/[A-Z]/.test(pw))   score++;
-  if (/[0-9]/.test(pw))   score++;
+  if (pw.length >= 8)       score++;
+  if (/[A-Z]/.test(pw))    score++;
+  if (/[0-9]/.test(pw))    score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   const levels = [
     { label: "Too short", color: "#ff6b6b" },
@@ -28,7 +27,7 @@ function passwordStrength(pw: string): { score: number; label: string; color: st
   return { score, ...levels[Math.min(score, 4)] };
 }
 
-function Field({ label, icon, children, error }: { label: string; icon: JSX.Element; children: React.ReactNode; error?: string }) {
+function Field({ label, icon, children, error }: { label: string; icon: React.ReactNode; children: React.ReactNode; error?: string }) {
   return (
     <div>
       <label style={{ display: "block", fontSize: 10, fontFamily: "var(--font-mono)", color: "#94a3b8", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 7 }}>
@@ -52,16 +51,14 @@ const inputStyle = (hasError?: boolean): React.CSSProperties => ({
 });
 
 export default function Login({ onLogin }: { onLogin: (user: AuthUser) => void }) {
-  const [view, setView]     = useState<"login" | "register" | "success" | "signup">("login");
+  const [view, setView]         = useState<"login" | "register" | "success">("login");
 
-  // Login state
   const [loginEmail,   setLoginEmail]   = useState("");
   const [loginPass,    setLoginPass]    = useState("");
   const [loginError,   setLoginError]   = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [showPass,     setShowPass]     = useState(false);
 
-  // Register state
   const [regName,    setRegName]    = useState("");
   const [regEmail,   setRegEmail]   = useState("");
   const [regPass,    setRegPass]    = useState("");
@@ -151,30 +148,22 @@ export default function Login({ onLogin }: { onLogin: (user: AuthUser) => void }
     </button>
   );
 
-  if (view === "signup") {
-    return <SignUp onBack={() => setView("login")} />;
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ fontFamily: "var(--font-body)" }}>
-      {/* Ambient orbs */}
       <div style={{ position: "fixed", top: "15%",   left: "8%",   width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle,rgba(91,143,255,0.15) 0%,transparent 70%)", pointerEvents: "none", filter: "blur(40px)" }} />
       <div style={{ position: "fixed", bottom: "10%", right: "6%",  width: 280, height: 280, borderRadius: "50%", background: "radial-gradient(circle,rgba(192,132,252,0.15) 0%,transparent 70%)", pointerEvents: "none", filter: "blur(40px)" }} />
       <div style={{ position: "fixed", top: "50%",   right: "20%", width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle,rgba(34,211,238,0.10) 0%,transparent 70%)", pointerEvents: "none", filter: "blur(30px)" }} />
 
       <div style={{ width: "100%", maxWidth: view === "register" ? 480 : 420, position: "relative", transition: "max-width 0.3s" }}>
-        {/* Glow ring */}
         <div style={{ position: "absolute", inset: -2, borderRadius: 24, background: "linear-gradient(135deg,rgba(91,143,255,0.5),rgba(192,132,252,0.4),rgba(34,211,238,0.3))", filter: "blur(1px)", zIndex: 0 }} />
 
         <div className="glass" style={{ borderRadius: 22, padding: view === "register" ? "32px 34px" : "40px 36px", position: "relative", zIndex: 1 }}>
 
-          {/* Logos */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 22 }}>
             <img src={apcLogo}       alt="APC logo"      style={{ height: 48, width: 48, objectFit: "contain" }} />
             <img src={docupulseLogo} alt="DocuPulse logo" style={{ height: 48, width: 74, objectFit: "contain" }} />
           </div>
 
-          {/* ── SUCCESS ── */}
           {view === "success" && (
             <div style={{ textAlign: "center", padding: "10px 0 20px" }}>
               <div style={{ width: 60, height: 60, borderRadius: "50%", margin: "0 auto 18px", background: "linear-gradient(135deg,rgba(46,232,154,0.2),rgba(46,232,154,0.06))", border: "1px solid rgba(46,232,154,0.4)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 24px rgba(46,232,154,0.25)" }}>
@@ -190,7 +179,6 @@ export default function Login({ onLogin }: { onLogin: (user: AuthUser) => void }
             </div>
           )}
 
-          {/* ── LOGIN ── */}
           {view === "login" && (
             <>
               <div style={{ textAlign: "center", marginBottom: 28 }}>
@@ -223,13 +211,12 @@ export default function Login({ onLogin }: { onLogin: (user: AuthUser) => void }
 
               <div style={{ textAlign: "center", marginTop: 20 }}>
                 <span style={{ fontSize: 13, color: "var(--color-muted)" }}>{"Don't have an account? "}</span>
-                <button onClick={() => setView("signup")}
+                <button onClick={() => setView("register")}
                   style={{ fontSize: 13, fontWeight: 600, color: "#a5c0ff", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(165,192,255,0.3)", textUnderlineOffset: 3 }}>
                   Create account
                 </button>
               </div>
 
-              {/* Seed credentials hint */}
               <div style={{ marginTop: 18, background: "rgba(91,143,255,0.06)", border: "1px solid rgba(91,143,255,0.12)", borderRadius: 10, padding: "12px 14px" }}>
                 <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--color-muted)", letterSpacing: "0.1em", marginBottom: 8, textTransform: "uppercase" }}>Seed Accounts (after /setup)</p>
                 {[
@@ -246,7 +233,6 @@ export default function Login({ onLogin }: { onLogin: (user: AuthUser) => void }
             </>
           )}
 
-          {/* ── REGISTER ── */}
           {view === "register" && (
             <>
               <div style={{ textAlign: "center", marginBottom: 24 }}>
@@ -269,7 +255,6 @@ export default function Login({ onLogin }: { onLogin: (user: AuthUser) => void }
                   {regEmail.includes("@") && !regErrors.email && <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#2ee89a" }}>✓</span>}
                 </Field>
 
-                {/* Password + strength */}
                 <div>
                   <Field label="Password" error={regTouched && regErrors.pass ? regErrors.pass : ""}
                     icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="#c084fc" strokeWidth="1.3"/><path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="#c084fc" strokeWidth="1.3" strokeLinecap="round"/><circle cx="7" cy="9.5" r="1" fill="#c084fc"/></svg>}>
