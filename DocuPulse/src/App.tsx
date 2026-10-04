@@ -7,12 +7,13 @@ import FinanceAuth from './components/FinanceAuth';
 import ItroAuth from './components/ItroAuth';
 import LibraryAuth from './components/LibraryAuth';
 
+import { FinanceDashboard } from './components/FinanceDashboard';
+import { ItroDashboard } from './components/ItroDashboard';
+import { LibraryDashboard } from './components/LibraryDashboard';
+
 import {
   RequestorDashboard,
   LogisticsDashboard,
-  FinanceDashboard,
-  ItroDashboard,
-  LibraryDashboard,
 } from './components/Dashboards';
 
 type PortalView = 'requestor' | 'logistics' | 'finance' | 'itro' | 'library';
