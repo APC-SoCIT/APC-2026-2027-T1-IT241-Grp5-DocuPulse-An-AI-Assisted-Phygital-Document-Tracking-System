@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Lock, Mail, User, Shield, ArrowRight, Building2 } from 'lucide-react';
+import { Lock, Mail, User, ArrowRight, Building2, UserPlus, LogIn } from 'lucide-react';
 
 interface AuthProps {
   onAuthSuccess: () => void;
@@ -10,8 +10,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('Jose Mirador');
-  const [role, setRole] = useState<'Requestor' | 'Approver' | 'Logistics Officer'>('Requestor');
+  const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('Information Technology');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -23,11 +22,11 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
 
     if (isSignUp) {
       if (password.length < 6) {
-        setErrorMsg('Password requirements not met: Minimum length is 6 characters.');
+        setErrorMsg('Password must be at least 6 characters long.');
         return;
       }
       if (!termsAccepted) {
-        setErrorMsg('You must agree to the terms and institutional compliance agreement.');
+        setErrorMsg('You must agree to the institutional compliance terms.');
         return;
       }
     }
@@ -41,7 +40,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         options: {
           data: {
             full_name: fullName,
-            role: role,
+            role: 'Requestor',
             department: department
           }
         }
@@ -62,6 +61,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans selection:bg-indigo-500 selection:text-white">
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        
         <div className="flex items-center gap-3.5 mb-6">
           <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-1 shadow-xl shadow-indigo-600/20">
             <img src="/docupulse-logo.png" alt="DocuPulse Emblem" className="w-full h-full object-contain" />
@@ -70,6 +70,27 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             <h1 className="font-bold text-lg text-white leading-tight">DocuPulse</h1>
             <p className="text-[11px] text-indigo-400 font-semibold tracking-wide">AI-Assisted Phygital Tracking System</p>
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-6">
+          <button
+            type="button"
+            onClick={() => { setIsSignUp(false); setErrorMsg(''); }}
+            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-2 ${
+              !isSignUp ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <LogIn className="w-3.5 h-3.5" /> Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsSignUp(true); setErrorMsg(''); }}
+            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-2 ${
+              isSignUp ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <UserPlus className="w-3.5 h-3.5" /> Requestor Signup
+          </button>
         </div>
 
         {errorMsg && (
@@ -88,7 +109,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                   <input
                     type="text"
                     required
-                    placeholder="Jose Mirador"
+                    placeholder="Enter your full name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
@@ -97,7 +118,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Assigned Department</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Department</label>
                 <div className="relative">
                   <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
                   <select
@@ -108,22 +129,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                     <option value="Information Technology">School of Information Technology (SoCIT)</option>
                     <option value="Finance">Finance Department</option>
                     <option value="Administration">Administration</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Assigned System Role</label>
-                <div className="relative">
-                  <Shield className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
-                  >
-                    <option value="Requestor">Requestor (Submits & Tracks Requisitions)</option>
-                    <option value="Approver">Approver (Department Validation & Review)</option>
-                    <option value="Logistics Officer">Logistics Officer (Procurement & Processing)</option>
                   </select>
                 </div>
               </div>
@@ -158,9 +163,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
               />
             </div>
-            {isSignUp && (
-              <p className="text-[10px] text-slate-500 mt-1">Must be at least 6 characters long with valid alphanumeric structure.</p>
-            )}
           </div>
 
           {isSignUp && (
@@ -183,18 +185,16 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             disabled={loading}
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 mt-2"
           >
-            {loading ? 'Authenticating...' : isSignUp ? 'Create Account' : 'Sign In'} <ArrowRight className="w-4 h-4" />
+            {loading ? 'Authenticating...' : isSignUp ? 'Create Requestor Account' : 'Sign In'} <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
         <div className="mt-6 pt-4 border-t border-slate-800 text-center">
-          <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-xs text-slate-400 hover:text-indigo-400 transition"
-          >
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Register"}
-          </button>
+          <p className="text-[11px] text-slate-500">
+            Approver or Admin accounts are provisioned internally by system administration.
+          </p>
         </div>
+
       </div>
     </div>
   );
