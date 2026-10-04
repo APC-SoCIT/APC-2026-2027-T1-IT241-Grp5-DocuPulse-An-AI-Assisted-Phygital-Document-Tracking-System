@@ -6,7 +6,7 @@ import { supabase } from "./lib/supabase";
 export type Role = "admin" | "user" | "logistics";
 export interface AuthUser {
   id: string;
-  username: string; // email
+  username: string;
   name: string;
   role: Role;
 }
