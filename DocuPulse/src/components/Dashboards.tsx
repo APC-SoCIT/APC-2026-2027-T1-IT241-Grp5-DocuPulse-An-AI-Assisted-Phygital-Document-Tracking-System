@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Truck, Receipt, MonitorCheck, BookOpen, LogOut, FileText, CheckCircle, Clock, Shield, Plus, X, Loader2, RefreshCw } from 'lucide-react';
+import { User, Truck, Receipt, MonitorCheck, BookOpen, LogOut, FileText, CheckCircle, Clock, Shield, Plus, X, Loader2, RefreshCw, Bell } from 'lucide-react';
 
 interface DashboardProps {
   user: any;
@@ -9,6 +9,8 @@ interface DashboardProps {
 
 export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
   const [requisitions, setRequisitions] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -19,20 +21,29 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
 
   const fetchRequisitions = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('document_requisitions')
       .select('*')
       .eq('requestor_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setRequisitions(data);
-    }
+    if (data) setRequisitions(data);
     setLoading(false);
+  };
+
+  const fetchNotifications = async () => {
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (data) setNotifications(data);
   };
 
   useEffect(() => {
     fetchRequisitions();
+    fetchNotifications();
   }, [user.id]);
 
   const handleSubmitRequisition = async (e: React.FormEvent) => {
@@ -43,38 +54,92 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
     const trackingNo = `DP-${Math.floor(100000 + Math.random() * 900000)}`;
     const userDept = user?.user_metadata?.department || 'School of Information Technology (SoCIT)';
 
-    const { error } = await supabase.from('document_requisitions').insert([
-      {
-        requestor_id: user.id,
-        document_type: documentType,
-        department: userDept,
-        tracking_number: trackingNo,
-        status: 'Pending Review',
-        remarks: remarks.trim() || null
-      }
-    ]);
+    const { data: inserted, error } = await supabase
+      .from('document_requisitions')
+      .insert([
+        {
+          requestor_id: user.id,
+          document_type: documentType,
+          department: userDept,
+          tracking_number: trackingNo,
+          status: 'Pending Review',
+          remarks: remarks.trim() || null
+        }
+      ])
+      .select()
+      .single();
 
     if (error) {
       setErrorMsg(error.message);
     } else {
+      await supabase.from('audit_logs').insert([
+        {
+          requisition_id: inserted.id,
+          performed_by: user.id,
+          action: 'Requisition Submitted',
+          location: userDept
+        }
+      ]);
+
       setIsModalOpen(false);
       setRemarks('');
       fetchRequisitions();
+      fetchNotifications();
     }
     setSubmitting(false);
   };
 
   const activeCount = requisitions.filter(r => r.status !== 'Completed' && r.status !== 'Rejected').length;
   const completedCount = requisitions.filter(r => r.status === 'Completed').length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <DashboardLayout title="Requestor Portal" role="Requestor" badgeColor="bg-indigo-500/20 text-indigo-400 border-indigo-500/30" icon={<User className="w-5 h-5 text-indigo-400" />} user={user} onSignOut={onSignOut}>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Active Requisitions" value={activeCount.toString()} icon={<Clock className="w-4 h-4 text-amber-400" />} />
-        <StatCard label="Approved Documents" value={completedCount.toString()} icon={<CheckCircle className="w-4 h-4 text-emerald-400" />} />
-        <StatCard label="Department" value={user?.user_metadata?.department || 'N/A'} icon={<FileText className="w-4 h-4 text-indigo-400" />} />
+      
+      {/* Top Bar Notifications Toggle */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 mr-4">
+          <StatCard label="Active Requisitions" value={activeCount.toString()} icon={<Clock className="w-4 h-4 text-amber-400" />} />
+          <StatCard label="Approved Documents" value={completedCount.toString()} icon={<CheckCircle className="w-4 h-4 text-emerald-400" />} />
+          <StatCard label="Department" value={user?.user_metadata?.department || 'N/A'} icon={<FileText className="w-4 h-4 text-indigo-400" />} />
+        </div>
+
+        <button 
+          onClick={() => setShowNotifications(!showNotifications)}
+          className="relative p-3 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl transition"
+        >
+          <Bell className="w-5 h-5 text-slate-300" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-950">
+              {unreadCount}
+            </span>
+          )}
+        </button>
       </div>
 
+      {/* Notifications Drawer */}
+      {showNotifications && (
+        <div className="mb-6 p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
+          <h4 className="text-xs font-bold text-slate-200 mb-3 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-indigo-400" /> Notifications
+          </h4>
+          {notifications.length === 0 ? (
+            <p className="text-xs text-slate-500">No notifications yet.</p>
+          ) : (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {notifications.map((n) => (
+                <div key={n.id} className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs">
+                  <p className="font-semibold text-slate-200">{n.title}</p>
+                  <p className="text-slate-400 text-[11px] mt-0.5">{n.message}</p>
+                  <span className="text-[9px] text-slate-500 mt-1 block">{new Date(n.created_at).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* New Request Modal Button & Queue */}
       <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl mb-6">
         <div className="flex items-center justify-between">
           <div>
@@ -194,7 +259,9 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
     </DashboardLayout>
   );
 }
-function StaffQueueTable({ roleName, actionLabels }: { roleName: string; actionLabels: { primary: string; secondary: string; primaryStatus: string; secondaryStatus: string } }) {
+
+// Staff Shared Queue Component with Automatic Audit Logs & Notifications
+function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any; roleName: string; actionLabels: { primary: string; secondary: string; primaryStatus: string; secondaryStatus: string } }) {
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -214,14 +281,40 @@ function StaffQueueTable({ roleName, actionLabels }: { roleName: string; actionL
     fetchQueue();
   }, []);
 
-  const updateStatus = async (id: string, newStatus: string) => {
-    setProcessingId(id);
-    await supabase
-      .from('document_requisitions')
-      .update({ status: newStatus })
-      .eq('id', id);
+  const updateStatus = async (item: any, newStatus: string, actionLabel: string) => {
+    setProcessingId(item.id);
 
-    fetchQueue();
+    // 1. Update Requisition Status
+    const { error: updateErr } = await supabase
+      .from('document_requisitions')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', item.id);
+
+    if (!updateErr) {
+      // 2. Insert Audit Log
+      await supabase.from('audit_logs').insert([
+        {
+          requisition_id: item.id,
+          performed_by: staffUser.id,
+          action: `${roleName}: ${actionLabel}`,
+          location: staffUser?.user_metadata?.department || roleName
+        }
+      ]);
+
+      // 3. Insert Notification for the Requestor
+      await supabase.from('notifications').insert([
+        {
+          requisition_id: item.id,
+          user_id: item.requestor_id,
+          title: `Status Update: ${item.tracking_number}`,
+          message: `Your requisition for ${item.document_type} was updated to "${newStatus}" by ${roleName}.`,
+          new_stage: newStatus,
+          type: 'status_update'
+        }
+      ]);
+
+      fetchQueue();
+    }
     setProcessingId(null);
   };
 
@@ -266,14 +359,14 @@ function StaffQueueTable({ roleName, actionLabels }: { roleName: string; actionL
                   <td className="py-3 px-2 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => updateStatus(item.id, actionLabels.secondaryStatus)}
+                        onClick={() => updateStatus(item, actionLabels.secondaryStatus, actionLabels.secondary)}
                         disabled={processingId === item.id}
                         className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-[11px] font-semibold transition"
                       >
                         {actionLabels.secondary}
                       </button>
                       <button
-                        onClick={() => updateStatus(item.id, actionLabels.primaryStatus)}
+                        onClick={() => updateStatus(item, actionLabels.primaryStatus, actionLabels.primary)}
                         disabled={processingId === item.id}
                         className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-semibold transition shadow-md shadow-emerald-600/20"
                       >
@@ -300,6 +393,7 @@ export function LogisticsDashboard({ user, onSignOut }: DashboardProps) {
         <StatCard label="Active Smart Lockers" value="100%" icon={<Shield className="w-4 h-4 text-emerald-400" />} />
       </div>
       <StaffQueueTable
+        staffUser={user}
         roleName="Logistics Dispatch"
         actionLabels={{
           primary: 'Dispatch Package',
@@ -321,6 +415,7 @@ export function FinanceDashboard({ user, onSignOut }: DashboardProps) {
         <StatCard label="Account Balance Holds" value="2" icon={<Shield className="w-4 h-4 text-red-400" />} />
       </div>
       <StaffQueueTable
+        staffUser={user}
         roleName="Finance Clearance"
         actionLabels={{
           primary: 'Clear Payment',
@@ -342,6 +437,7 @@ export function ItroDashboard({ user, onSignOut }: DashboardProps) {
         <StatCard label="Security Logs" value="Normal" icon={<Shield className="w-4 h-4 text-emerald-400" />} />
       </div>
       <StaffQueueTable
+        staffUser={user}
         roleName="System Operations"
         actionLabels={{
           primary: 'Approve System Release',
@@ -363,6 +459,7 @@ export function LibraryDashboard({ user, onSignOut }: DashboardProps) {
         <StatCard label="Unreturned Items" value="1" icon={<Shield className="w-4 h-4 text-red-400" />} />
       </div>
       <StaffQueueTable
+        staffUser={user}
         roleName="Library Resource Clearance"
         actionLabels={{
           primary: 'Grant Clearance',
