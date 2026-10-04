@@ -1,15 +1,12 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, User, Building2, KeyRound, ShieldCheck, UserCheck, ArrowRight, UserPlus, LogIn } from 'lucide-react';
+import { Mail, Lock, User, Building2, ArrowRight, UserPlus, LogIn } from 'lucide-react';
 
 interface AuthProps {
   onAuthSuccess: () => void;
 }
 
-type PortalRole = 'requestor' | 'employee' | 'admin';
-
 export default function Auth({ onAuthSuccess }: AuthProps) {
-  const [activePortal, setActivePortal] = useState<PortalRole>('requestor');
   const [isRegistering, setIsRegistering] = useState(false);
 
   const [email, setEmail] = useState('');
@@ -17,18 +14,10 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('School of Information Technology (SoCIT)');
   const [customDepartment, setCustomDepartment] = useState('');
-  const [employeeRole, setEmployeeRole] = useState<'Approver' | 'Logistics Officer'>('Approver');
-  const [passcode, setPasscode] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handlePortalSwitch = (portal: PortalRole) => {
-    setActivePortal(portal);
-    setIsRegistering(false);
-    setErrorMsg('');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +32,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         setErrorMsg('You must accept the institutional compliance agreement.');
         return;
       }
-      if (activePortal !== 'requestor' && !passcode.trim()) {
-        setErrorMsg('Institutional authorization passcode is required.');
-        return;
-      }
       if (department === 'Other' && !customDepartment.trim()) {
         setErrorMsg('Please specify your school department.');
         return;
@@ -54,13 +39,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     }
 
     setLoading(true);
-
-    const assignedRole =
-      activePortal === 'requestor'
-        ? 'Requestor'
-        : activePortal === 'employee'
-        ? employeeRole
-        : 'System Manager';
 
     const finalDepartment = department === 'Other' ? customDepartment.trim() : department;
 
@@ -71,9 +49,9 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         options: {
           data: {
             full_name: fullName,
-            role: assignedRole,
-            department: activePortal === 'admin' ? 'Administration' : finalDepartment,
-            portal_type: activePortal
+            role: 'Requestor',
+            department: finalDepartment,
+            portal_type: 'requestor'
           }
         }
       });
@@ -97,7 +75,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans selection:bg-indigo-500 selection:text-white">
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         
-        {/* Logo Header */}
+        {/* System Emblem Header */}
         <div className="flex items-center gap-3.5 mb-6">
           <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-1 shadow-xl shadow-indigo-600/20">
             <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
@@ -108,59 +86,24 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </div>
         </div>
 
-        {/* Portal Tabs */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-6">
-          <button
-            type="button"
-            onClick={() => handlePortalSwitch('requestor')}
-            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-              activePortal === 'requestor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <User className="w-3.5 h-3.5" /> Requestor
-          </button>
-          <button
-            type="button"
-            onClick={() => handlePortalSwitch('employee')}
-            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-              activePortal === 'employee' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" /> Employee
-          </button>
-          <button
-            type="button"
-            onClick={() => handlePortalSwitch('admin')}
-            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-              activePortal === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" /> Manager
-          </button>
-        </div>
-
-        {/* Portal Description */}
+        {/* Form Title & Subtitle */}
         <div className="mb-5 text-center">
           <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-            {activePortal === 'requestor' && 'Requestor Portal'}
-            {activePortal === 'employee' && 'Employee / Approver Portal'}
-            {activePortal === 'admin' && 'System Management Portal'}
+            {isRegistering ? 'Create Requestor Account' : 'Sign In'}
           </h2>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            {activePortal === 'requestor' && (isRegistering ? 'Create an account to submit and track document requisitions' : 'Sign in to access your active document requisitions')}
-            {activePortal === 'employee' && (isRegistering ? 'Register as an authorized approver or logistics officer' : 'Sign in to review and process pending requisitions')}
-            {activePortal === 'admin' && (isRegistering ? 'System manager account setup' : 'Sign in to access global system administration')}
+            {isRegistering ? 'Create an account to submit and track document requisitions' : 'Sign in to access your active document requisitions'}
           </p>
         </div>
 
-        {/* Error Notification */}
+        {/* Error Alert Box */}
         {errorMsg && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl">
             {errorMsg}
           </div>
         )}
 
-        {/* Authentication Form */}
+        {/* Form Inputs */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegistering && (
             <>
@@ -179,29 +122,27 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 </div>
               </div>
 
-              {activePortal !== 'admin' && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">School Department</label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                    <select
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
-                    >
-                      <option value="School of Information Technology (SoCIT)">School of Information Technology (SoCIT)</option>
-                      <option value="School of Media and Arts (SOMA)">School of Media and Arts (SOMA)</option>
-                      <option value="School of Management (SOM)">School of Management (SOM)</option>
-                      <option value="School of Engineering (SOE)">School of Engineering (SOE)</option>
-                      <option value="Finance Department">Finance Department</option>
-                      <option value="Administration">Administration</option>
-                      <option value="Other">Other Department...</option>
-                    </select>
-                  </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">School Department</label>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                  <select
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                  >
+                    <option value="School of Information Technology (SoCIT)">School of Information Technology (SoCIT)</option>
+                    <option value="School of Media and Arts (SOMA)">School of Media and Arts (SOMA)</option>
+                    <option value="School of Management (SOM)">School of Management (SOM)</option>
+                    <option value="School of Engineering (SOE)">School of Engineering (SOE)</option>
+                    <option value="Finance Department">Finance Department</option>
+                    <option value="Administration">Administration</option>
+                    <option value="Other">Other Department...</option>
+                  </select>
                 </div>
-              )}
+              </div>
 
-              {activePortal !== 'admin' && department === 'Other' && (
+              {department === 'Other' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Specify Department</label>
                   <div className="relative">
@@ -212,40 +153,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                       placeholder="Enter your specific department"
                       value={customDepartment}
                       onChange={(e) => setCustomDepartment(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {activePortal === 'employee' && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Employee Operational Role</label>
-                  <div className="relative">
-                    <UserCheck className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                    <select
-                      value={employeeRole}
-                      onChange={(e) => setEmployeeRole(e.target.value as 'Approver' | 'Logistics Officer')}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
-                    >
-                      <option value="Approver">Approver (Review & Decision)</option>
-                      <option value="Logistics Officer">Logistics Officer (Processing & Dispatch)</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {activePortal !== 'requestor' && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Authorization Passcode</label>
-                  <div className="relative">
-                    <KeyRound className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                    <input
-                      type="password"
-                      required
-                      placeholder="Enter institutional clearance key"
-                      value={passcode}
-                      onChange={(e) => setPasscode(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
                     />
                   </div>
@@ -302,17 +209,17 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 mt-2 capitalize"
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 mt-2"
           >
             {loading ? (
               'Authenticating...'
             ) : isRegistering ? (
               <>
-                <UserPlus className="w-4 h-4" /> Create {activePortal} Account
+                <UserPlus className="w-4 h-4" /> Create Account
               </>
             ) : (
               <>
-                <LogIn className="w-4 h-4" /> Sign In ({activePortal}) <ArrowRight className="w-4 h-4" />
+                <LogIn className="w-4 h-4" /> Sign In <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
@@ -328,7 +235,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             }}
             className="text-xs text-slate-400 hover:text-indigo-400 transition font-medium"
           >
-            {isRegistering ? 'Already have an account? Sign In' : "Don't have an account? Create one"}
+            {isRegistering ? 'Already have an account? Sign In' : "Don't have an account? Register"}
           </button>
         </div>
 
