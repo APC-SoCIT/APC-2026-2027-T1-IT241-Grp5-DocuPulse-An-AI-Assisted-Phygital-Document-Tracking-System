@@ -97,7 +97,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans selection:bg-indigo-500 selection:text-white">
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         
-        {/* System Emblem Header */}
         <div className="flex items-center gap-3.5 mb-6">
           <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-1 shadow-xl shadow-indigo-600/20">
             <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
@@ -108,38 +107,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </div>
         </div>
 
-        {/* Portal Navigation Tabs */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-6">
-          <button
-            type="button"
-            onClick={() => handlePortalSwitch('requestor')}
-            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-              activePortal === 'requestor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <User className="w-3.5 h-3.5" /> Requestor
-          </button>
-          <button
-            type="button"
-            onClick={() => handlePortalSwitch('employee')}
-            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-              activePortal === 'employee' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" /> Employee
-          </button>
-          <button
-            type="button"
-            onClick={() => handlePortalSwitch('admin')}
-            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-              activePortal === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" /> Manager
-          </button>
-        </div>
-
-        {/* Dynamic Portal Header Description */}
         <div className="mb-5 text-center">
           <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
             {activePortal === 'requestor' && 'Requestor Portal'}
@@ -153,14 +120,12 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </p>
         </div>
 
-        {/* Error Alert Box */}
         {errorMsg && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl">
             {errorMsg}
           </div>
         )}
 
-        {/* Form Inputs */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegistering && (
             <>
@@ -318,7 +283,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </button>
         </form>
 
-        {/* View Switcher Footer */}
         <div className="mt-6 pt-4 border-t border-slate-800 text-center">
           <button
             type="button"
