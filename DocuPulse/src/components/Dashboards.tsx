@@ -14,7 +14,7 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const [documentType, setDocumentType] = useState('Official Transcript of Records (OTR)');
+  const [documentType, setDocumentType] = useState('Requisition Form');
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -96,7 +96,6 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
   return (
     <DashboardLayout title="Requestor Portal" role="Requestor" badgeColor="bg-indigo-500/20 text-indigo-400 border-indigo-500/30" icon={<User className="w-5 h-5 text-indigo-400" />} user={user} onSignOut={onSignOut}>
       
-      {/* Top Bar Notifications Toggle */}
       <div className="flex justify-between items-center mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 mr-4">
           <StatCard label="Active Requisitions" value={activeCount.toString()} icon={<Clock className="w-4 h-4 text-amber-400" />} />
@@ -117,7 +116,6 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
         </button>
       </div>
 
-      {/* Notifications Drawer */}
       {showNotifications && (
         <div className="mb-6 p-4 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
           <h4 className="text-xs font-bold text-slate-200 mb-3 flex items-center gap-2">
@@ -139,7 +137,6 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
         </div>
       )}
 
-      {/* New Request Modal Button & Queue */}
       <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl mb-6">
         <div className="flex items-center justify-between">
           <div>
@@ -215,13 +212,13 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
                 <select
                   value={documentType}
                   onChange={(e) => setDocumentType(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition cursor-pointer"
                 >
-                  <option value="Official Transcript of Records (OTR)">Official Transcript of Records (OTR)</option>
-                  <option value="Certificate of Grades (COG)">Certificate of Grades (COG)</option>
-                  <option value="Certificate of Enrollment (COE)">Certificate of Enrollment (COE)</option>
-                  <option value="Diploma / Graduation Certificate">Diploma / Graduation Certificate</option>
-                  <option value="Honorable Dismissal / Transfer Credentials">Honorable Dismissal / Transfer Credentials</option>
+                  <option value="Requisition Form">Requisition Form</option>
+                  <option value="Food Allowance Request Form">Food Allowance Request Form</option>
+                  <option value="Vehicle Trip Ticket">Vehicle Trip Ticket</option>
+                  <option value="Library Purchase Requisition form">Library Purchase Requisition form</option>
+                  <option value="Equipment Gate Pass">Equipment Gate Pass</option>
                 </select>
               </div>
 
@@ -229,7 +226,7 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
                 <label className="block text-xs font-medium text-slate-300 mb-1">Purpose / Remarks (Optional)</label>
                 <textarea
                   rows={3}
-                  placeholder="State purpose of request (e.g., employment, scholarship, transfer)"
+                  placeholder="State purpose of request (e.g., employment, event, official trip)"
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition resize-none"
@@ -260,7 +257,6 @@ export function RequestorDashboard({ user, onSignOut }: DashboardProps) {
   );
 }
 
-// Staff Shared Queue Component with Automatic Audit Logs & Notifications
 function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any; roleName: string; actionLabels: { primary: string; secondary: string; primaryStatus: string; secondaryStatus: string } }) {
   const [requisitions, setRequisitions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -284,14 +280,12 @@ function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any
   const updateStatus = async (item: any, newStatus: string, actionLabel: string) => {
     setProcessingId(item.id);
 
-    // 1. Update Requisition Status
     const { error: updateErr } = await supabase
       .from('document_requisitions')
       .update({ status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', item.id);
 
     if (!updateErr) {
-      // 2. Insert Audit Log
       await supabase.from('audit_logs').insert([
         {
           requisition_id: item.id,
@@ -301,7 +295,6 @@ function StaffQueueTable({ staffUser, roleName, actionLabels }: { staffUser: any
         }
       ]);
 
-      // 3. Insert Notification for the Requestor
       await supabase.from('notifications').insert([
         {
           requisition_id: item.id,
