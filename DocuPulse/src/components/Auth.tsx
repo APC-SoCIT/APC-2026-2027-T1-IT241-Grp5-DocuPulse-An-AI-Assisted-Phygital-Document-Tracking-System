@@ -107,6 +107,37 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </div>
         </div>
 
+        {/* Portal Switcher Tabs */}
+        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-6">
+          <button
+            type="button"
+            onClick={() => handlePortalSwitch('requestor')}
+            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
+              activePortal === 'requestor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <User className="w-3.5 h-3.5" /> Requestor
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePortalSwitch('employee')}
+            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
+              activePortal === 'employee' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5" /> Employee
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePortalSwitch('admin')}
+            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
+              activePortal === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" /> Manager
+          </button>
+        </div>
+
         <div className="mb-5 text-center">
           <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
             {activePortal === 'requestor' && 'Requestor Portal'}
