@@ -330,7 +330,7 @@ export default function RequisitionForm({ user, onClose, onSuccess }: Requisitio
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-1">
-            <FileText className="w-3.5 h-3.5" /> REQUESTOR DASHBOARD (DP-04)
+            <FileText className="w-3.5 h-3.5" /> REQUESTOR DASHBOARD
           </div>
           <h1 className="text-2xl font-bold text-white">Requisition History & Tracking</h1>
           <p className="text-xs text-slate-400">Search past submissions, view current statuses, and track historical lifecycles.</p>
