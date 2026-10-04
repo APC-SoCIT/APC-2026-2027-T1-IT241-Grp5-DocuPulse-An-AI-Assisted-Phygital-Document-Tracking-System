@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Lock, Mail, User, Shield, ArrowRight, KeyRound, Building2 } from 'lucide-react';
+import { Lock, Mail, User, Shield, ArrowRight, Building2 } from 'lucide-react';
 
 interface AuthProps {
   onAuthSuccess: () => void;
@@ -16,50 +16,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handleDemoLogin = async (
-    demoEmail: string, 
-    demoName: string, 
-    demoRole: 'Requestor' | 'Approver' | 'Logistics Officer'
-  ) => {
-    setErrorMsg('');
-    setLoading(true);
-    const demoPassword = 'password123';
-
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: demoEmail,
-      password: demoPassword,
-    });
-
-    if (!signInError) {
-      setLoading(false);
-      onAuthSuccess();
-      return;
-    }
-
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: demoEmail,
-      password: demoPassword,
-      options: {
-        data: {
-          full_name: demoName,
-          role: demoRole,
-          department: 'Information Technology'
-        }
-      }
-    });
-
-    if (signUpError) {
-      setErrorMsg(`Demo Login Error: ${signUpError.message}`);
-    } else {
-      await supabase.auth.signInWithPassword({
-        email: demoEmail,
-        password: demoPassword,
-      });
-      onAuthSuccess();
-    }
-    setLoading(false);
-  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,39 +69,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           <div>
             <h1 className="font-bold text-lg text-white leading-tight">DocuPulse</h1>
             <p className="text-[11px] text-indigo-400 font-semibold tracking-wide">AI-Assisted Phygital Tracking System</p>
-          </div>
-        </div>
-
-        {/* Demo Fast Login Buttons */}
-        <div className="mb-6 p-3 bg-slate-950/80 border border-slate-800 rounded-2xl">
-          <div className="flex items-center gap-1.5 text-indigo-400 text-xs font-semibold mb-2">
-            <KeyRound className="w-3.5 h-3.5" /> Fast Demo Access (One-Click)
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleDemoLogin('admin@apc.edu.ph', 'Admin Logistics', 'Logistics Officer')}
-              className="py-2 px-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 rounded-xl text-[10px] text-indigo-200 font-semibold transition text-center"
-            >
-              Admin / Logistics
-            </button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleDemoLogin('approver@apc.edu.ph', 'Department Approver', 'Approver')}
-              className="py-2 px-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 rounded-xl text-[10px] text-indigo-200 font-semibold transition text-center"
-            >
-              Approver
-            </button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleDemoLogin('requestor@apc.edu.ph', 'Student Requestor', 'Requestor')}
-              className="py-2 px-2 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 rounded-xl text-[10px] text-indigo-200 font-semibold transition text-center"
-            >
-              Requestor
-            </button>
           </div>
         </div>
 
