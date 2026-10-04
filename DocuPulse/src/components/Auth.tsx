@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from './lib/supabase';
 import { Lock, Mail, User, ArrowRight, Building2, ShieldCheck, UserCheck, KeyRound, Truck } from 'lucide-react';
 
 interface AuthProps {
   onAuthSuccess: () => void;
 }
 
-type PortalType = 'requestor' | 'approver' | 'logistics' | 'admin';
+type MainTab = 'requestor' | 'employee' | 'admin';
+type EmployeeSubRole = 'approver' | 'logistics';
 
 export default function Auth({ onAuthSuccess }: AuthProps) {
-  const [activePortal, setActivePortal] = useState<PortalType>('requestor');
+  const [activeTab, setActiveTab] = useState<MainTab>('requestor');
+  const [employeeSubRole, setEmployeeSubRole] = useState<EmployeeSubRole>('approver');
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,8 +23,8 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handlePortalChange = (portal: PortalType) => {
-    setActivePortal(portal);
+  const handleTabSwitch = (tab: MainTab) => {
+    setActiveTab(tab);
     setIsSignUp(false);
     setErrorMsg('');
   };
@@ -40,7 +42,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         setErrorMsg('You must agree to the institutional compliance terms.');
         return;
       }
-      if (activePortal !== 'requestor' && !accessCode.trim()) {
+      if (activeTab !== 'requestor' && !accessCode.trim()) {
         setErrorMsg('Institutional authorization code is required.');
         return;
       }
@@ -53,12 +55,10 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     setLoading(true);
 
     const assignedRole = 
-      activePortal === 'requestor' 
+      activeTab === 'requestor' 
         ? 'Requestor' 
-        : activePortal === 'approver'
-        ? 'Approver'
-        : activePortal === 'logistics'
-        ? 'Logistics Officer'
+        : activeTab === 'employee'
+        ? (employeeSubRole === 'approver' ? 'Approver' : 'Logistics Officer')
         : 'System Manager';
 
     const finalDepartment = department === 'Other' ? customDepartment.trim() : department;
@@ -71,8 +71,8 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           data: {
             full_name: fullName,
             role: assignedRole,
-            department: activePortal === 'admin' ? 'Administration' : finalDepartment,
-            portal_type: activePortal
+            department: activeTab === 'admin' ? 'Administration' : finalDepartment,
+            portal_type: activeTab === 'employee' ? employeeSubRole : activeTab
           }
         }
       });
@@ -103,57 +103,69 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-6">
+        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-4">
           <button
             type="button"
-            onClick={() => handlePortalChange('requestor')}
-            className={`py-2 text-[10px] font-semibold rounded-lg transition flex flex-col items-center gap-1 ${
-              activePortal === 'requestor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            onClick={() => handleTabSwitch('requestor')}
+            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
+              activeTab === 'requestor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <User className="w-3.5 h-3.5" /> Requestor
+            <User className="w-3.5 h-3.5" /> Requestors
           </button>
           <button
             type="button"
-            onClick={() => handlePortalChange('approver')}
-            className={`py-2 text-[10px] font-semibold rounded-lg transition flex flex-col items-center gap-1 ${
-              activePortal === 'approver' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            onClick={() => handleTabSwitch('employee')}
+            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
+              activeTab === 'employee' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <UserCheck className="w-3.5 h-3.5" /> Approver
+            <UserCheck className="w-3.5 h-3.5" /> Employees
           </button>
           <button
             type="button"
-            onClick={() => handlePortalChange('logistics')}
-            className={`py-2 text-[10px] font-semibold rounded-lg transition flex flex-col items-center gap-1 ${
-              activePortal === 'logistics' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            onClick={() => handleTabSwitch('admin')}
+            className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
+              activeTab === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Truck className="w-3.5 h-3.5" /> Logistics
-          </button>
-          <button
-            type="button"
-            onClick={() => handlePortalChange('admin')}
-            className={`py-2 text-[10px] font-semibold rounded-lg transition flex flex-col items-center gap-1 ${
-              activePortal === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" /> Manager
+            <ShieldCheck className="w-3.5 h-3.5" /> Managers
           </button>
         </div>
 
+        {activeTab === 'employee' && (
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/60 border border-slate-800/80 rounded-lg mb-4">
+            <button
+              type="button"
+              onClick={() => setEmployeeSubRole('approver')}
+              className={`py-1.5 text-[11px] font-medium rounded-md transition flex items-center justify-center gap-1 ${
+                employeeSubRole === 'approver' ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <UserCheck className="w-3 h-3" /> Approver (Review)
+            </button>
+            <button
+              type="button"
+              onClick={() => setEmployeeSubRole('logistics')}
+              className={`py-1.5 text-[11px] font-medium rounded-md transition flex items-center justify-center gap-1 ${
+                employeeSubRole === 'logistics' ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Truck className="w-3 h-3" /> Logistics (Dispatch)
+            </button>
+          </div>
+        )}
+
         <div className="mb-4 text-center">
-          <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
-            {activePortal === 'requestor' && 'Requestor Portal'}
-            {activePortal === 'approver' && 'Approver Portal'}
-            {activePortal === 'logistics' && 'Logistics Portal'}
-            {activePortal === 'admin' && 'System Manager Portal'}
+          <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+            {activeTab === 'requestor' && 'Student / Requestor Portal'}
+            {activeTab === 'employee' && (employeeSubRole === 'approver' ? 'Approver Portal' : 'Logistics Officer Portal')}
+            {activeTab === 'admin' && 'System Management Portal'}
           </h2>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            {activePortal === 'requestor' && 'Submit and track document requisitions'}
-            {activePortal === 'approver' && 'Review, validate, and endorse requisitions'}
-            {activePortal === 'logistics' && 'Process dispatch and physical document tracking'}
-            {activePortal === 'admin' && 'Manage system configurations and user roles'}
+            {activeTab === 'requestor' && 'Submit and track document requisitions'}
+            {activeTab === 'employee' && (employeeSubRole === 'approver' ? 'Review, validate, and endorse requisitions' : 'Process dispatch and physical document tracking')}
+            {activeTab === 'admin' && 'Manage system configurations and user roles'}
           </p>
         </div>
 
@@ -181,7 +193,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 </div>
               </div>
 
-              {activePortal !== 'admin' && (
+              {activeTab !== 'admin' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">School Department</label>
                   <div className="relative">
@@ -203,7 +215,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 </div>
               )}
 
-              {activePortal !== 'admin' && department === 'Other' && (
+              {activeTab !== 'admin' && department === 'Other' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Specify Department</label>
                   <div className="relative">
@@ -220,7 +232,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 </div>
               )}
 
-              {activePortal !== 'requestor' && (
+              {activeTab !== 'requestor' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Authorization Passcode</label>
                   <div className="relative">
@@ -289,7 +301,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             disabled={loading}
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 mt-2 capitalize"
           >
-            {loading ? 'Authenticating...' : isSignUp ? `Register (${activePortal})` : `Sign In (${activePortal})`} <ArrowRight className="w-4 h-4" />
+            {loading ? 'Authenticating...' : isSignUp ? `Register (${activeTab === 'employee' ? employeeSubRole : activeTab})` : `Sign In (${activeTab === 'employee' ? employeeSubRole : activeTab})`} <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
