@@ -1,0 +1,118 @@
+@startuml C4_Level4_Code_Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+
+title C4 Code Diagram (Level 4) - DocuPulse NestJS Backend (Sprint 1 Scope)
+
+package "Controllers Layer" {
+    class AuthController {
+        +register(dto: RegisterDto): Promise<AuthResponse>
+        +login(dto: LoginDto): Promise<AuthResponse>
+    }
+
+    class RequisitionController {
+        +createRequisition(dto: CreateRequisitionDto, files: File[]): Promise<Requisition>
+        +getRequisitionById(id: string): Promise<Requisition>
+        +getUserRequisitions(userId: string): Promise<Requisition[]>
+        +getApprovalChain(requisitionId: string): Promise<ApprovalChainResponse>
+    }
+
+    class TrackingController {
+        +scanQRCode(dto: ScanQRCodeDto): Promise<TrackingLog>
+        +getRequisitionTrackingHistory(requisitionId: string): Promise<TrackingLog[]>
+    }
+}
+
+package "Services / Domain Logic Layer" {
+    class AuthService {
+        +validateUserCredentials(credentials: Credentials): Promise<User>
+        +assignDefaultDepartmentRole(user: User, deptId: string): Promise<Role>
+    }
+
+    class RequisitionService {
+        +validateFormCompleteness(dto: CreateRequisitionDto): ValidationResult
+        +checkDuplicateSubmission(dto: CreateRequisitionDto): Promise<boolean>
+        +generateUniqueRequisitionId(): string
+        +createRequisitionRecord(data: CreateRequisitionDto): Promise<Requisition>
+        +attachSupportingDocuments(requisitionId: string, files: File[]): Promise<Document[]>
+    }
+
+    class WorkflowTrackingService {
+        +initiateApprovalChain(requisitionId: string): Promise<ApprovalStage[]>
+        +processQRScan(qrPayload: string, location: string, userId: string): Promise<TrackingLog>
+        +updateWorkflowStage(requisitionId: string, nextStage: Stage): Promise<void>
+        +notifyDepartmentHead(deptId: string, requisitionId: string): Promise<void>
+    }
+}
+
+package "Entities & Models" {
+    class User {
+        +id: string
+        +email: string
+        +fullName: string
+        +department: Department
+        +role: Role
+    }
+
+    class Requisition {
+        +id: string
+        +requestorId: string
+        +status: RequisitionStatus
+        +createdAt: DateTime
+        +updatedAt: DateTime
+    }
+
+    class TrackingLog {
+        +id: string
+        +requisitionId: string
+        +scannedByUserId: string
+        +locationName: string
+        +timestamp: DateTime
+        +stageName: string
+    }
+
+    class ApprovalStage {
+        +id: string
+        +requisitionId: string
+        +requiredRole: DepartmentRole
+        +status: ApprovalStatus
+        +updatedTime: DateTime
+    }
+}
+
+package "Infrastructure / Adapters" {
+    class SupabaseRepository {
+        +saveEntity<T>(entity: T): Promise<T>
+        +findEntityById<T>(id: string): Promise<T>
+        +queryEntities<T>(query: Object): Promise<T[]>
+    }
+
+    class StorageAdapter {
+        +uploadFiles(files: File[]): Promise<string[]>
+    }
+
+    class NotificationAdapter {
+        +sendStageChangeNotification(targetUserId: string, message: string): Promise<void>
+    }
+}
+
+' Controller to Service relations
+AuthController --> AuthService : delegates auth logic
+RequisitionController --> RequisitionService : delegates submission & retrieval
+RequisitionController --> WorkflowTrackingService : queries approval chain
+TrackingController --> WorkflowTrackingService : processes QR scans & logs
+
+' Service to Service / Adapter relations
+RequisitionService ..> WorkflowTrackingService : triggers approval chain on creation
+WorkflowTrackingService ..> NotificationAdapter : dispatches DP-08 notifications
+RequisitionService --> StorageAdapter : uploads DP-03 attachments
+RequisitionService --> SupabaseRepository : persists requisition records
+WorkflowTrackingService --> SupabaseRepository : logs DP-07 QR scans & status updates
+AuthService --> SupabaseRepository : manages user identity records
+
+' Data Structure Associations
+Requisition "1" *-- "many" TrackingLog : contains
+Requisition "1" *-- "many" ApprovalStage : defines
+User "1" -- "many" Requisition : submits
+
+@enduml
