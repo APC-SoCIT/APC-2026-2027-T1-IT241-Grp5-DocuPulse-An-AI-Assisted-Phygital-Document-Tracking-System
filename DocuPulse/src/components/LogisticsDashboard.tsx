@@ -129,8 +129,6 @@ export default function LogisticsDashboard() {
             className="bg-slate-950 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500 transition"
           >
             <option value="All">All Departments</option>
-            <option value="College of Computing & Information Technologies">College of Computing</option>
-            <option value="Registrar Office">Registrar Office</option>
             <option value="Administrative & Human Resources">Administrative & HR</option>
             <option value="Finance & Accounting">Finance & Accounting</option>
           </select>

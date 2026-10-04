@@ -106,7 +106,6 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
                   >
                     <option value="Information Technology">School of Information Technology (SoCIT)</option>
-                    <option value="Registrar">Registrar Office</option>
                     <option value="Finance">Finance Department</option>
                     <option value="Administration">Administration</option>
                   </select>
