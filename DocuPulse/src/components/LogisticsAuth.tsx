@@ -178,7 +178,7 @@ export default function LogisticsAuth({ onAuthSuccess }: AuthProps) {
             {loading ? 'Authenticating...' : isRegistering ? (
               <><UserPlus className="w-4 h-4" /> Register (Logistics)</>
             ) : (
-              <><LogIn className="w-4 h-4" /> Sign In (Logistics) <ArrowRight className="w-4 h-4" /></>
+              <><LogIn className="w-4 h-4" /> Sign In  <ArrowRight className="w-4 h-4" /></>
             )}
           </button>
         </form>

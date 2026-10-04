@@ -1,48 +1,39 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, User, Building2, ArrowRight, UserPlus, LogIn } from 'lucide-react';
+import { Lock, Mail, User, ArrowRight, Building2 } from 'lucide-react';
 
 interface AuthProps {
   onAuthSuccess: () => void;
 }
 
 export default function Auth({ onAuthSuccess }: AuthProps) {
-  const [isRegistering, setIsRegistering] = useState(false);
-
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('School of Information Technology (SoCIT)');
-  const [customDepartment, setCustomDepartment] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
-
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
-    if (isRegistering) {
+    if (isSignUp) {
       if (password.length < 6) {
         setErrorMsg('Password must be at least 6 characters long.');
         return;
       }
       if (!termsAccepted) {
-        setErrorMsg('You must accept the institutional compliance agreement.');
-        return;
-      }
-      if (department === 'Other' && !customDepartment.trim()) {
-        setErrorMsg('Please specify your school department.');
+        setErrorMsg('You must agree to the institutional compliance terms.');
         return;
       }
     }
 
     setLoading(true);
 
-    const finalDepartment = department === 'Other' ? customDepartment.trim() : department;
-
-    if (isRegistering) {
+    if (isSignUp) {
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -50,12 +41,11 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           data: {
             full_name: fullName,
             role: 'Requestor',
-            department: finalDepartment,
+            department: department,
             portal_type: 'requestor'
           }
         }
       });
-
       if (error) setErrorMsg(error.message);
       else onAuthSuccess();
     } else {
@@ -63,11 +53,9 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         email,
         password
       });
-
       if (error) setErrorMsg(error.message);
       else onAuthSuccess();
     }
-
     setLoading(false);
   };
 
@@ -75,10 +63,9 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans selection:bg-indigo-500 selection:text-white">
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         
-        {/* System Emblem Header */}
         <div className="flex items-center gap-3.5 mb-6">
           <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-1 shadow-xl shadow-indigo-600/20">
-            <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
+            <img src="/docupulse-logo.png" alt="DocuPulse Emblem" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-bold text-lg text-white leading-tight">DocuPulse</h1>
@@ -86,26 +73,23 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </div>
         </div>
 
-        {/* Form Title & Subtitle */}
-        <div className="mb-5 text-center">
-          <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-            {isRegistering ? 'Create Requestor Account' : 'Sign In'}
+        <div className="mb-4 text-center">
+          <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+            {isSignUp ? 'Create Account' : 'Sign In Portal'}
           </h2>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            {isRegistering ? 'Create an account to submit and track document requisitions' : 'Sign in to access your active document requisitions'}
+            {isSignUp ? 'Register to submit and track document requisitions' : 'Sign in to access your document requisitions and tracking'}
           </p>
         </div>
 
-        {/* Error Alert Box */}
         {errorMsg && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl">
             {errorMsg}
           </div>
         )}
 
-        {/* Form Inputs */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isRegistering && (
+        <form onSubmit={handleAuth} className="space-y-4">
+          {isSignUp && (
             <>
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
@@ -125,39 +109,19 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">School Department</label>
                 <div className="relative">
-                  <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                  <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-500 z-10 pointer-events-none" />
                   <select
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition cursor-pointer"
                   >
-                    <option value="School of Information Technology (SoCIT)">School of Information Technology (SoCIT)</option>
-                    <option value="School of Media and Arts (SOMA)">School of Media and Arts (SOMA)</option>
-                    <option value="School of Management (SOM)">School of Management (SOM)</option>
-                    <option value="School of Engineering (SOE)">School of Engineering (SOE)</option>
-                    <option value="Finance Department">Finance Department</option>
-                    <option value="Administration">Administration</option>
-                    <option value="Other">Other Department...</option>
+                    <option value="School of Information Technology (SoCIT)" className="bg-slate-900 text-slate-200">School of Information Technology (SoCIT)</option>
+                    <option value="School of Media and Arts (SOMA)" className="bg-slate-900 text-slate-200">School of Media and Arts (SOMA)</option>
+                    <option value="School of Management (SOM)" className="bg-slate-900 text-slate-200">School of Management (SOM)</option>
+                    <option value="School of Engineering (SOE)" className="bg-slate-900 text-slate-200">School of Engineering (SOE)</option>
                   </select>
                 </div>
               </div>
-
-              {department === 'Other' && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Specify Department</label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter your specific department"
-                      value={customDepartment}
-                      onChange={(e) => setCustomDepartment(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
-                    />
-                  </div>
-                </div>
-              )}
             </>
           )}
 
@@ -191,17 +155,17 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             </div>
           </div>
 
-          {isRegistering && (
+          {isSignUp && (
             <div className="flex items-center gap-2 pt-1">
-              <input
-                type="checkbox"
-                id="terms"
+              <input 
+                type="checkbox" 
+                id="terms" 
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
                 className="rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-0"
               />
               <label htmlFor="terms" className="text-[11px] text-slate-400 select-none">
-                I agree to the institutional compliance agreement.
+                I agree to the institutional terms and compliance agreement.
               </label>
             </div>
           )}
@@ -211,31 +175,16 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             disabled={loading}
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 mt-2"
           >
-            {loading ? (
-              'Authenticating...'
-            ) : isRegistering ? (
-              <>
-                <UserPlus className="w-4 h-4" /> Create Account
-              </>
-            ) : (
-              <>
-                <LogIn className="w-4 h-4" /> Sign In <ArrowRight className="w-4 h-4" />
-              </>
-            )}
+            {loading ? 'Authenticating...' : isSignUp ? 'Register' : 'Sign In'} <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {/* View Switcher Footer */}
         <div className="mt-6 pt-4 border-t border-slate-800 text-center">
           <button
-            type="button"
-            onClick={() => {
-              setIsRegistering(!isRegistering);
-              setErrorMsg('');
-            }}
-            className="text-xs text-slate-400 hover:text-indigo-400 transition font-medium"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-xs text-slate-400 hover:text-indigo-400 transition"
           >
-            {isRegistering ? 'Already have an account? Sign In' : "Don't have an account? Register"}
+            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Register"}
           </button>
         </div>
 
