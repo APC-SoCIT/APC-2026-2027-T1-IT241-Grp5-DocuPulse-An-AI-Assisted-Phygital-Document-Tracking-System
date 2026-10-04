@@ -1,244 +1,307 @@
-import { useState, useEffect } from 'react';
-import { supabase } from './lib/supabase';
-import RequisitionForm from './components/RequisitionForm';
-import RequisitionValidation from './components/RequisitionValidation';
-import LogisticsProcessing from './components/DepartmentReview';
-import LogisticsDashboard from './components/LogisticsDashboard';
-import NotificationsFeed from './components/NotificationsFeed';
-import Auth from './components/Auth';
-import { 
-  CheckSquare, Send, Truck, LayoutDashboard, Bell, 
-  ChevronRight, Menu, Shield, LogOut, Layers, Search
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { supabase } from "./lib/supabase";
+import { Lock, Mail, User, ArrowRight, Building2, ShieldCheck, UserCheck, KeyRound, Truck } from 'lucide-react';
 
-export default function App() {
-  const [session, setSession] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<string>('dp01');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+interface AuthProps {
+  onAuthSuccess: () => void;
+}
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) fetchUserProfile(session.user.id);
-    });
+type PortalType = 'requestor' | 'approver' | 'logistics' | 'admin';
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) fetchUserProfile(session.user.id);
-      else setProfile(null);
-    });
+export default function Auth({ onAuthSuccess }: AuthProps) {
+  const [activePortal, setActivePortal] = useState<PortalType>('requestor');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [department, setDepartment] = useState('School of Information Technology (SoCIT)');
+  const [customDepartment, setCustomDepartment] = useState('');
+  const [accessCode, setAccessCode] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchUserProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (data) {
-      setProfile(data);
-      if (data.role === 'Logistics Officer') setActiveTab('dp16');
-      else if (data.role === 'Approver') setActiveTab('dp02');
-      else setActiveTab('dp01');
-    }
+  const handlePortalChange = (portal: PortalType) => {
+    setActivePortal(portal);
+    setIsSignUp(false);
+    setErrorMsg('');
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
 
-  if (!session) {
-    return <Auth onAuthSuccess={() => {}} />;
-  }
-
-  const role = profile?.role || 'Requestor';
-
-  const allNavItems = [
-    { id: 'dp01', label: 'Requisitions', icon: Send, badge: 'Form', roles: ['Requestor', 'Approver', 'Logistics Officer'] },
-    { id: 'dp02', label: 'Validation', icon: CheckSquare, badge: 'Review', roles: ['Approver', 'Logistics Officer'] },
-    { id: 'dp11', label: 'Logistics', icon: Truck, badge: 'Procurement', roles: ['Logistics Officer'] },
-    { id: 'dp16', label: 'Dashboard', icon: LayoutDashboard, badge: 'Live Queue', roles: ['Logistics Officer'] },
-    { id: 'dp21', label: 'Notifications', icon: Bell, badge: 'Hub', roles: ['Requestor', 'Approver', 'Logistics Officer'] }
-  ];
-
-  const allowedNavItems = allNavItems.filter(item => item.roles.includes(role));
-
-  const getTabTitle = () => {
-    switch (activeTab) {
-      case 'dp01': return 'Digital Requisition Submission';
-      case 'dp02': return 'Entry Validation Engine';
-      case 'dp11': return 'Logistics Sourcing & Processing';
-      case 'dp16': return 'Institutional Logistics Dashboard';
-      case 'dp21': return 'Automated Communication Feed';
-      default: return 'Workspace';
+    if (isSignUp) {
+      if (password.length < 6) {
+        setErrorMsg('Password must be at least 6 characters long.');
+        return;
+      }
+      if (!termsAccepted) {
+        setErrorMsg('You must agree to the institutional compliance terms.');
+        return;
+      }
+      if (activePortal !== 'requestor' && !accessCode.trim()) {
+        setErrorMsg('Institutional authorization code is required.');
+        return;
+      }
+      if (department === 'Other' && !customDepartment.trim()) {
+        setErrorMsg('Please specify your school department.');
+        return;
+      }
     }
+
+    setLoading(true);
+
+    const assignedRole = 
+      activePortal === 'requestor' 
+        ? 'Requestor' 
+        : activePortal === 'approver'
+        ? 'Approver'
+        : activePortal === 'logistics'
+        ? 'Logistics Officer'
+        : 'System Manager';
+
+    const finalDepartment = department === 'Other' ? customDepartment.trim() : department;
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: assignedRole,
+            department: activePortal === 'admin' ? 'Administration' : finalDepartment,
+            portal_type: activePortal
+          }
+        }
+      });
+      if (error) setErrorMsg(error.message);
+      else onAuthSuccess();
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) setErrorMsg(error.message);
+      else onAuthSuccess();
+    }
+    setLoading(false);
   };
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden antialiased selection:bg-indigo-500 selection:text-white">
-      <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 border-r border-slate-800/80 bg-slate-900/80 backdrop-blur-xl p-4 flex flex-col justify-between hidden md:flex z-30 shrink-0`}>
-        <div>
-          <div className="mb-6">
-            {isSidebarOpen ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-0.5 shadow-lg shadow-indigo-600/20">
-                    <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
-                  </div>
-                  <div className="truncate">
-                    <h1 className="font-bold text-base tracking-tight text-white leading-tight truncate">DocuPulse</h1>
-                    <p className="text-[9px] text-indigo-400 font-semibold tracking-wide truncate">PHYGITAL TRACKING</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setIsSidebarOpen(false)} 
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition shrink-0"
-                  title="Collapse Sidebar"
-                >
-                  <Menu className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-0.5 shadow-lg shadow-indigo-600/20">
-                  <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
-                </div>
-                <button 
-                  onClick={() => setIsSidebarOpen(true)} 
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
-                  title="Expand Sidebar"
-                >
-                  <Menu className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans selection:bg-indigo-500 selection:text-white">
+      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        
+        <div className="flex items-center gap-3.5 mb-6">
+          <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-1 shadow-xl shadow-indigo-600/20">
+            <img src="/docupulse-logo.png" alt="DocuPulse Emblem" className="w-full h-full object-contain" />
           </div>
-
-          <div className="mb-5">
-            {isSidebarOpen ? (
-              <div className="p-2.5 bg-slate-950/70 border border-slate-800/80 rounded-xl flex items-center justify-between shadow-inner">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <Shield className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                  <span className="text-[11px] font-semibold text-slate-200 truncate">{role}</span>
-                </div>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-              </div>
-            ) : (
-              <div className="flex justify-center p-2.5 bg-slate-950 border border-slate-800 rounded-xl" title={role}>
-                <Shield className="w-4 h-4 text-indigo-400 shrink-0" />
-              </div>
-            )}
+          <div>
+            <h1 className="font-bold text-lg text-white leading-tight">DocuPulse</h1>
+            <p className="text-[11px] text-indigo-400 font-semibold tracking-wide">AI-Assisted Phygital Tracking System</p>
           </div>
-
-          <nav className="space-y-1.5">
-            {allowedNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  title={!isSidebarOpen ? item.label : undefined}
-                  className={`w-full flex items-center ${isSidebarOpen ? 'justify-between' : 'justify-center'} p-2.5 rounded-xl text-xs font-medium transition-all group ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-indigo-600/20 to-indigo-600/5 text-indigo-300 border border-indigo-500/30 shadow-md shadow-indigo-600/10' 
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
-                    {isSidebarOpen && <span className="truncate">{item.label}</span>}
-                  </div>
-                  {isSidebarOpen && (
-                    <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-md shrink-0 ${
-                      isActive ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-slate-950 text-slate-400 border border-slate-800'
-                    }`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
         </div>
 
-        <div className="pt-4 border-t border-slate-800/80">
+        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-6">
           <button
-            onClick={handleSignOut}
-            title={!isSidebarOpen ? "Sign Out" : undefined}
-            className={`w-full flex items-center ${isSidebarOpen ? 'justify-start gap-3' : 'justify-center'} p-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition`}
+            type="button"
+            onClick={() => handlePortalChange('requestor')}
+            className={`py-2 text-[10px] font-semibold rounded-lg transition flex flex-col items-center gap-1 ${
+              activePortal === 'requestor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
           >
-            <LogOut className="w-4 h-4 shrink-0" />
-            {isSidebarOpen && <span>Sign Out</span>}
+            <User className="w-3.5 h-3.5" /> Requestor
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePortalChange('approver')}
+            className={`py-2 text-[10px] font-semibold rounded-lg transition flex flex-col items-center gap-1 ${
+              activePortal === 'approver' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <UserCheck className="w-3.5 h-3.5" /> Approver
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePortalChange('logistics')}
+            className={`py-2 text-[10px] font-semibold rounded-lg transition flex flex-col items-center gap-1 ${
+              activePortal === 'logistics' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5" /> Logistics
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePortalChange('admin')}
+            className={`py-2 text-[10px] font-semibold rounded-lg transition flex flex-col items-center gap-1 ${
+              activePortal === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" /> Manager
           </button>
         </div>
-      </aside>
 
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className="h-16 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-20">
-          <div className="flex items-center gap-3">
-            <div className="flex md:hidden items-center gap-2">
-              <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-0.5">
-                <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
-              </div>
-              <span className="font-bold text-sm text-white">DocuPulse</span>
-            </div>
+        <div className="mb-4 text-center">
+          <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+            {activePortal === 'requestor' && 'Requestor Portal'}
+            {activePortal === 'approver' && 'Approver Portal'}
+            {activePortal === 'logistics' && 'Logistics Portal'}
+            {activePortal === 'admin' && 'System Manager Portal'}
+          </h2>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            {activePortal === 'requestor' && 'Submit and track document requisitions'}
+            {activePortal === 'approver' && 'Review, validate, and endorse requisitions'}
+            {activePortal === 'logistics' && 'Process dispatch and physical document tracking'}
+            {activePortal === 'admin' && 'Manage system configurations and user roles'}
+          </p>
+        </div>
 
-            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 font-mono">
-              <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              <span>DocuPulse</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-              <span className="text-slate-200 font-medium">{getTabTitle()}</span>
-            </div>
+        {errorMsg && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl">
+            {errorMsg}
           </div>
+        )}
 
-          <div className="flex items-center gap-4">
-            <div className="relative hidden md:block w-56">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+        <form onSubmit={handleAuth} className="space-y-4">
+          {isSignUp && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
+                <div className="relative">
+                  <User className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                  />
+                </div>
+              </div>
+
+              {activePortal !== 'admin' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">School Department</label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                    <select
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                    >
+                      <option value="School of Information Technology (SoCIT)">School of Information Technology (SoCIT)</option>
+                      <option value="School of Media and Arts (SOMA)">School of Media and Arts (SOMA)</option>
+                      <option value="School of Management (SOM)">School of Management (SOM)</option>
+                      <option value="School of Engineering (SOE)">School of Engineering (SOE)</option>
+                      <option value="Finance Department">Finance Department</option>
+                      <option value="Administration">Administration</option>
+                      <option value="Other">Other Department...</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {activePortal !== 'admin' && department === 'Other' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Specify Department</label>
+                  <div className="relative">
+                    <Building2 className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter your specific department"
+                      value={customDepartment}
+                      onChange={(e) => setCustomDepartment(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activePortal !== 'requestor' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Authorization Passcode</label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                    <input
+                      type="password"
+                      required
+                      placeholder="Enter institutional key"
+                      value={accessCode}
+                      onChange={(e) => setAccessCode(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Institutional Email</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
               <input
-                type="text"
-                placeholder="Search Requisitions..."
-                className="w-full bg-slate-950 border border-slate-800/80 rounded-xl py-1.5 pl-9 pr-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+                type="email"
+                required
+                placeholder="name@apc.edu.ph"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
               />
             </div>
+          </div>
 
-            <button
-              onClick={() => setActiveTab('dp21')}
-              className="relative p-2 bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 rounded-xl transition"
-              title="Notifications Feed"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-500 rounded-full ring-2 ring-slate-900 animate-pulse"></span>
-            </button>
-
-            <div className="h-4 w-px bg-slate-800"></div>
-
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center font-bold text-xs text-white shadow-md shadow-indigo-600/20">
-                {profile?.full_name ? profile.full_name.charAt(0) : 'U'}
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-xs font-semibold text-white leading-tight">{profile?.full_name || 'User'}</p>
-                <p className="text-[10px] text-slate-400">{role}</p>
-              </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Password</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+              />
             </div>
           </div>
-        </header>
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-950 relative">
-          <div className="max-w-6xl mx-auto space-y-6">
-            {activeTab === 'dp01' && <RequisitionForm />}
-            {activeTab === 'dp02' && <RequisitionValidation />}
-            {activeTab === 'dp11' && <LogisticsProcessing />}
-            {activeTab === 'dp16' && <LogisticsDashboard />}
-            {activeTab === 'dp21' && <NotificationsFeed />}
-          </div>
-        </main>
+          {isSignUp && (
+            <div className="flex items-center gap-2 pt-1">
+              <input 
+                type="checkbox" 
+                id="terms" 
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-0"
+              />
+              <label htmlFor="terms" className="text-[11px] text-slate-400 select-none">
+                I agree to the institutional terms and compliance agreement.
+              </label>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 mt-2 capitalize"
+          >
+            {loading ? 'Authenticating...' : isSignUp ? `Register (${activePortal})` : `Sign In (${activePortal})`} <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
+        <div className="mt-6 pt-4 border-t border-slate-800 text-center">
+          <button
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-xs text-slate-400 hover:text-indigo-400 transition"
+          >
+            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Register"}
+          </button>
+        </div>
+
       </div>
     </div>
   );
