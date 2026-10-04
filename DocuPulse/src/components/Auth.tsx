@@ -1,49 +1,50 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Lock, Mail, User, ArrowRight, Building2, ShieldCheck, UserCheck, KeyRound, Truck } from 'lucide-react';
+import { Mail, Lock, User, Building2, KeyRound, ShieldCheck, UserCheck, ArrowRight, UserPlus, LogIn } from 'lucide-react';
 
 interface AuthProps {
   onAuthSuccess: () => void;
 }
 
-type MainTab = 'requestor' | 'employee' | 'admin';
-type EmployeeSubRole = 'approver' | 'logistics';
+type PortalRole = 'requestor' | 'employee' | 'admin';
 
 export default function Auth({ onAuthSuccess }: AuthProps) {
-  const [activeTab, setActiveTab] = useState<MainTab>('requestor');
-  const [employeeSubRole, setEmployeeSubRole] = useState<EmployeeSubRole>('approver');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [activePortal, setActivePortal] = useState<PortalRole>('requestor');
+  const [isRegistering, setIsRegistering] = useState(false);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('School of Information Technology (SoCIT)');
   const [customDepartment, setCustomDepartment] = useState('');
-  const [accessCode, setAccessCode] = useState('');
+  const [employeeRole, setEmployeeRole] = useState<'Approver' | 'Logistics Officer'>('Approver');
+  const [passcode, setPasscode] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleTabSwitch = (tab: MainTab) => {
-    setActiveTab(tab);
-    setIsSignUp(false);
+  const handlePortalSwitch = (portal: PortalRole) => {
+    setActivePortal(portal);
+    setIsRegistering(false);
     setErrorMsg('');
   };
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
-    if (isSignUp) {
+    if (isRegistering) {
       if (password.length < 6) {
         setErrorMsg('Password must be at least 6 characters long.');
         return;
       }
       if (!termsAccepted) {
-        setErrorMsg('You must agree to the institutional compliance terms.');
+        setErrorMsg('You must accept the institutional compliance agreement.');
         return;
       }
-      if (activeTab !== 'requestor' && !accessCode.trim()) {
-        setErrorMsg('Institutional authorization code is required.');
+      if (activePortal !== 'requestor' && !passcode.trim()) {
+        setErrorMsg('Institutional authorization passcode is required.');
         return;
       }
       if (department === 'Other' && !customDepartment.trim()) {
@@ -54,16 +55,16 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
 
     setLoading(true);
 
-    const assignedRole = 
-      activeTab === 'requestor' 
-        ? 'Requestor' 
-        : activeTab === 'employee'
-        ? (employeeSubRole === 'approver' ? 'Approver' : 'Logistics Officer')
+    const assignedRole =
+      activePortal === 'requestor'
+        ? 'Requestor'
+        : activePortal === 'employee'
+        ? employeeRole
         : 'System Manager';
 
     const finalDepartment = department === 'Other' ? customDepartment.trim() : department;
 
-    if (isSignUp) {
+    if (isRegistering) {
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -71,11 +72,12 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           data: {
             full_name: fullName,
             role: assignedRole,
-            department: activeTab === 'admin' ? 'Administration' : finalDepartment,
-            portal_type: activeTab === 'employee' ? employeeSubRole : activeTab
+            department: activePortal === 'admin' ? 'Administration' : finalDepartment,
+            portal_type: activePortal
           }
         }
       });
+
       if (error) setErrorMsg(error.message);
       else onAuthSuccess();
     } else {
@@ -83,9 +85,11 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
         email,
         password
       });
+
       if (error) setErrorMsg(error.message);
       else onAuthSuccess();
     }
+
     setLoading(false);
   };
 
@@ -93,9 +97,10 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans selection:bg-indigo-500 selection:text-white">
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         
+        {/* System Emblem Header */}
         <div className="flex items-center gap-3.5 mb-6">
           <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-indigo-500/30 bg-slate-950 flex items-center justify-center p-1 shadow-xl shadow-indigo-600/20">
-            <img src="/docupulse-logo.png" alt="DocuPulse Emblem" className="w-full h-full object-contain" />
+            <img src="/docupulse-logo.png" alt="DocuPulse Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-bold text-lg text-white leading-tight">DocuPulse</h1>
@@ -103,80 +108,61 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-3">
+        {/* Portal Navigation Tabs */}
+        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-6">
           <button
             type="button"
-            onClick={() => handleTabSwitch('requestor')}
+            onClick={() => handlePortalSwitch('requestor')}
             className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-              activeTab === 'requestor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+              activePortal === 'requestor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <User className="w-3.5 h-3.5" /> Requestors
+            <User className="w-3.5 h-3.5" /> Requestor
           </button>
           <button
             type="button"
-            onClick={() => handleTabSwitch('employee')}
+            onClick={() => handlePortalSwitch('employee')}
             className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-              activeTab === 'employee' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+              activePortal === 'employee' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <UserCheck className="w-3.5 h-3.5" /> Employees
+            <UserCheck className="w-3.5 h-3.5" /> Employee
           </button>
           <button
             type="button"
-            onClick={() => handleTabSwitch('admin')}
+            onClick={() => handlePortalSwitch('admin')}
             className={`py-2 text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1.5 ${
-              activeTab === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+              activePortal === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5" /> Managers
+            <ShieldCheck className="w-3.5 h-3.5" /> Manager
           </button>
         </div>
 
-        {activeTab === 'employee' && (
-          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/80 border border-slate-800/80 rounded-lg mb-4">
-            <button
-              type="button"
-              onClick={() => setEmployeeSubRole('approver')}
-              className={`py-1.5 text-[11px] font-medium rounded-md transition flex items-center justify-center gap-1 ${
-                employeeSubRole === 'approver' ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-semibold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <UserCheck className="w-3 h-3" /> Approver (Review)
-            </button>
-            <button
-              type="button"
-              onClick={() => setEmployeeSubRole('logistics')}
-              className={`py-1.5 text-[11px] font-medium rounded-md transition flex items-center justify-center gap-1 ${
-                employeeSubRole === 'logistics' ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-semibold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Truck className="w-3 h-3" /> Logistics (Dispatch)
-            </button>
-          </div>
-        )}
-
-        <div className="mb-4 text-center">
+        {/* Dynamic Portal Header Description */}
+        <div className="mb-5 text-center">
           <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-            {activeTab === 'requestor' && 'Student / Requestor Portal'}
-            {activeTab === 'employee' && (employeeSubRole === 'approver' ? 'Approver Portal' : 'Logistics Officer Portal')}
-            {activeTab === 'admin' && 'System Management Portal'}
+            {activePortal === 'requestor' && 'Requestor Portal'}
+            {activePortal === 'employee' && 'Employee / Approver Portal'}
+            {activePortal === 'admin' && 'System Management Portal'}
           </h2>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            {activeTab === 'requestor' && 'Submit and track document requisitions'}
-            {activeTab === 'employee' && (employeeSubRole === 'approver' ? 'Review, validate, and endorse requisitions' : 'Process dispatch and physical document tracking')}
-            {activeTab === 'admin' && 'Manage system configurations and user roles'}
+            {activePortal === 'requestor' && (isRegistering ? 'Create an account to submit and track document requisitions' : 'Sign in to access your active document requisitions')}
+            {activePortal === 'employee' && (isRegistering ? 'Register as an authorized approver or logistics officer' : 'Sign in to review and process pending requisitions')}
+            {activePortal === 'admin' && (isRegistering ? 'System manager account setup' : 'Sign in to access global system administration')}
           </p>
         </div>
 
+        {/* Error Alert Box */}
         {errorMsg && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl">
             {errorMsg}
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-4">
-          {isSignUp && (
+        {/* Form Inputs */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {isRegistering && (
             <>
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
@@ -193,7 +179,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 </div>
               </div>
 
-              {activeTab !== 'admin' && (
+              {activePortal !== 'admin' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">School Department</label>
                   <div className="relative">
@@ -215,7 +201,7 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 </div>
               )}
 
-              {activeTab !== 'admin' && department === 'Other' && (
+              {activePortal !== 'admin' && department === 'Other' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Specify Department</label>
                   <div className="relative">
@@ -232,7 +218,24 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                 </div>
               )}
 
-              {activeTab !== 'requestor' && (
+              {activePortal === 'employee' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Employee Role</label>
+                  <div className="relative">
+                    <UserCheck className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                    <select
+                      value={employeeRole}
+                      onChange={(e) => setEmployeeRole(e.target.value as any)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+                    >
+                      <option value="Approver">Approver (Review & Decision)</option>
+                      <option value="Logistics Officer">Logistics Officer (Processing & Dispatch)</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {activePortal !== 'requestor' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Authorization Passcode</label>
                   <div className="relative">
@@ -240,9 +243,9 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
                     <input
                       type="password"
                       required
-                      placeholder="Enter institutional key"
-                      value={accessCode}
-                      onChange={(e) => setAccessCode(e.target.value)}
+                      placeholder="Enter institutional clearance key"
+                      value={passcode}
+                      onChange={(e) => setPasscode(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 transition"
                     />
                   </div>
@@ -281,17 +284,17 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             </div>
           </div>
 
-          {isSignUp && (
+          {isRegistering && (
             <div className="flex items-center gap-2 pt-1">
-              <input 
-                type="checkbox" 
-                id="terms" 
+              <input
+                type="checkbox"
+                id="terms"
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
                 className="rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-0"
               />
               <label htmlFor="terms" className="text-[11px] text-slate-400 select-none">
-                I agree to the institutional terms and compliance agreement.
+                I agree to the institutional compliance agreement.
               </label>
             </div>
           )}
@@ -301,16 +304,31 @@ export default function Auth({ onAuthSuccess }: AuthProps) {
             disabled={loading}
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 mt-2 capitalize"
           >
-            {loading ? 'Authenticating...' : isSignUp ? `Register (${activeTab === 'employee' ? employeeSubRole : activeTab})` : `Sign In (${activeTab === 'employee' ? employeeSubRole : activeTab})`} <ArrowRight className="w-4 h-4" />
+            {loading ? (
+              'Authenticating...'
+            ) : isRegistering ? (
+              <>
+                <UserPlus className="w-4 h-4" /> Create {activePortal} Account
+              </>
+            ) : (
+              <>
+                <LogIn className="w-4 h-4" /> Sign In ({activePortal}) <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
 
+        {/* View Switcher Footer */}
         <div className="mt-6 pt-4 border-t border-slate-800 text-center">
           <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-xs text-slate-400 hover:text-indigo-400 transition"
+            type="button"
+            onClick={() => {
+              setIsRegistering(!isRegistering);
+              setErrorMsg('');
+            }}
+            className="text-xs text-slate-400 hover:text-indigo-400 transition font-medium"
           >
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Register"}
+            {isRegistering ? 'Already have an account? Sign In' : "Don't have an account? Create one"}
           </button>
         </div>
 
