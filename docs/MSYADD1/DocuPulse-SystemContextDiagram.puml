@@ -1,24 +1,26 @@
-@startuml DocuPulseSystemContextDiagram
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
-
-skinparam packageStyle rectangle
-title System Context Diagram - DocuPulse (Requisition Management System)
+@startuml DocuPulse_C4_Context
+!include <C4/C4_Context>
 
 Person(requestor, "Requestor", "Creates and manages requisitions, and receives notifications of status.")
-Person(department_head, "Department Head", "Reviews, endorses, and approves submitted requisitions.")
-Person(executive_director, "Executive Director", "Reviews and grants final approval on requisitions.")
+Person(depthead, "Department Head", "Reviews, endorses, and approves submitted requisitions.")
+Person(exec, "Executive Director", "Reviews and grants final approval on requisitions.")
+Person(acad, "Academic Services", "Reviews and approves requisitions from an academic services standpoint.")
 Person(finance, "Finance", "Reviews and approves requisitions from a budget/finance standpoint.")
 Person(logistics, "Logistics", "Views approved requisitions and processes requisitions fulfillment/delivery.")
 
-System(ecosystem, "Requisition Management System (DocuPulse)", "Central system for creating, routing, reviewing, approving, and processing requisitions.")
+System(docupulse, "Requisition Management System (DocuPulse)", "Central system for creating, routing, reviewing, approving, tracking, and processing requisitions.")
 
-System_Ext(ai_system, "AI System", "External AI service that analyzes requisitions and routes them to the appropriate approver.")
+System_Ext(ai, "AI System", "External AI service that analyzes requisitions and routes them to the appropriate approver.")
+System_Ext(lira, "LIRA System", "External system that receives requisition status notifications.")
 
-Rel(requestor, ecosystem, "Submits and manages requisitions, receives status notifications", "Web Portal / HTTPS")
-Rel(department_head, ecosystem, "Reviews, endorses and approves requisitions", "Web Portal / HTTPS")
-Rel(executive_director, ecosystem, "Reviews and approves requisitions", "Web Portal / HTTPS")
-Rel(finance, ecosystem, "Reviews and approves requisitions", "Web Portal / HTTPS")
-Rel(logistics, ecosystem, "Views approvals and processes requisitions", "Web Portal / HTTPS")
-Rel(ecosystem, ai_system, "Sends requisitions for AI analysis and routing", "API Calls")
+Rel_D(requestor, docupulse, "Submits, manages, and tracks requisitions", "Web Portal / HTTPS")
+Rel_D(depthead, docupulse, "Reviews, endorses and approves requisitions", "Web Portal / HTTPS")
+Rel_D(exec, docupulse, "Reviews and approves requisitions", "Web Portal / HTTPS")
+Rel_D(acad, docupulse, "Reviews and approves requisitions", "Web Portal / HTTPS")
+Rel_D(finance, docupulse, "Reviews and approves requisitions", "Web Portal / HTTPS")
+Rel_D(logistics, docupulse, "Manages reports and processes requisitions", "Web Portal / HTTPS")
+
+Rel_D(docupulse, ai, "Sends requisitions for AI analysis and routing", "API Calls")
+Rel_D(docupulse, lira, "Sends status notifications", "API Calls")
 
 @enduml

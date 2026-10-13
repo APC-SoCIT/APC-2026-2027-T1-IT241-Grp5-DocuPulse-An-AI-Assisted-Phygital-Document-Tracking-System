@@ -1,38 +1,46 @@
-@startuml DocuPulseContainerDiagram
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+@startuml DocuPulse_C4_Container
+!include <C4/C4_Container>
 
-skinparam packageStyle rectangle
-title Container Diagram - DocuPulse (Requisition Management System)
+Person(requestor, "Requestor", "Creates and tracks requisitions, receives notifications.")
+Person(depthead, "Department Head", "Reviews, endorses, and approves requisitions.")
+Person(exec, "Executive Director", "Grants final approval.")
+Person(acad, "Academic Services", "Approves from an academic services standpoint.")
+Person(finance, "Finance", "Approves from a budget/finance standpoint.")
+Person(logistics, "Logistics", "Manages reports and processes requisitions.")
 
-Person(requestor, "Requestor", "Creates and manages requisitions, tracks status, and receives notifications.")
-Person(department_head, "Department Head", "Reviews, endorses, and approves submitted requisitions.")
-Person(executive_director, "Executive Director", "Reviews and grants final approval on requisitions.")
-Person(finance, "Finance", "Reviews and approves requisitions from a budget/finance standpoint.")
-Person(logistics, "Logistics", "Views approved requisitions and processes fulfillment/delivery.")
+Lay_R(requestor, depthead)
+Lay_R(depthead, exec)
+Lay_R(exec, acad)
+Lay_R(acad, finance)
+Lay_R(finance, logistics)
 
-System_Boundary(c_ecosystem, "Requisition Management System [system]") {
-    Container(web_app, "Web Portal", "React + Vite, hosted on Vercel", "Single-page application used by requestors and approvers to submit, view, and act on requisitions.")
-    Container(auth_svc, "Auth Service", "Supabase Auth", "Handles user authentication and role-based access control for all actors.")
-    Container(requisition_api, "Requisition API", "Node.js, REST API, hosted on Vercel (Serverless Functions)", "Handles business logic for requisition creation, approval routing, and status updates.")
-    ContainerDb(db, "Requisition Database", "Supabase (PostgreSQL)", "Stores requisitions, approval history, statuses, user roles, and audit logs.")
-    Container(notification_svc, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes status updates and notifications to requestors and approvers in real time.")
+System_Boundary(docupulse, "Requisition Management System") {
+    Container(auth, "Auth Service", "Supabase Auth", "User authentication and role-based access control.")
+    Container(web, "Web Portal", "React + Vite, hosted on Vercel", "Single-page app to submit, track, review, and act on requisitions.")
+    Container(api, "Requisition API", "Node.js, REST, Vercel Serverless Functions", "Requisition creation, approval routing, disapproval, processing, reports, and status updates.")
+    Container(notif, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes live status updates to users and forwards them to LIRA.")
+    ContainerDb(db, "Requisition Database", "Supabase (PostgreSQL)", "Requisitions, approval history, statuses, user roles, audit logs.")
 }
 
-System_Ext(ai_system, "AI System", "External AI service that analyzes requisitions and routes them to the appropriate approver.")
+System_Ext(ai, "AI System", "Analyzes requisitions and routes them to the appropriate approver.")
+System_Ext(lira, "LIRA System", "Receives requisition status notifications.")
 
-Rel(requestor, web_app, "Creates and manages requisitions, views status", "HTTPS")
-Rel(department_head, web_app, "Reviews, endorses, and approves requisitions", "HTTPS")
-Rel(executive_director, web_app, "Reviews and approves requisitions", "HTTPS")
-Rel(finance, web_app, "Reviews and approves requisitions", "HTTPS")
-Rel(logistics, web_app, "Views approvals, processes requisitions fulfillment/delivery", "HTTPS")
+Rel_D(requestor, web, "Creates and tracks", "HTTPS")
+Rel_D(depthead, web, "Reviews and approves", "HTTPS")
+Rel_D(exec, web, "Gives final approval", "HTTPS")
+Rel_D(acad, web, "Reviews and approves", "HTTPS")
+Rel_D(finance, web, "Reviews and approves", "HTTPS")
+Rel_D(logistics, web, "Processes, reports", "HTTPS")
 
-Rel(web_app, auth_svc, "Authenticates users via", "HTTPS")
-Rel(web_app, requisition_api, "Makes API calls to", "JSON/HTTPS")
-Rel(auth_svc, db, "Validates and stores user identities in", "SQL/TCP")
-Rel(requisition_api, db, "Reads from and writes to", "SQL/TCP (Supabase Client Library)")
-Rel(requisition_api, notification_svc, "Triggers status update events on", "Internal API / Realtime Channel")
-Rel(requisition_api, ai_system, "Sends requisitions for AI analysis and routes", "API Calls")
-Rel(ai_system, requisition_api, "Returns routing recommendation to", "API Calls")
-Rel(notification_svc, web_app, "Pushes real-time status updates to", "WebSocket")
+Rel_L(web, auth, "Authenticates via", "HTTPS")
+Rel_D(web, api, "Calls", "JSON/HTTPS")
+Rel_R(api, notif, "Triggers status events", "Realtime channel")
+Rel_U(notif, web, "Pushes live updates", "WebSocket")
+
+Rel_D(auth, db, "Stores identities", "SQL")
+Rel_D(api, db, "Reads and writes", "SQL")
+
+BiRel_D(api, ai, "Sends requisitions, gets routing", "API Calls")
+Rel_R(notif, lira, "Sends status notifications", "API Calls")
 
 @enduml

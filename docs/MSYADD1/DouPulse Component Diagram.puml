@@ -1,0 +1,53 @@
+@startuml DocuPulse_C4_Component
+!include <C4/C4_Component>
+
+Container(web, "Web Portal", "React + Vite, hosted on Vercel", "Single-page application used to submit, track, review, and act on requisitions.")
+Container(auth, "Auth Service", "Supabase Auth", "Authentication and role-based access control.")
+ContainerDb(db, "Requisition Database", "Supabase (PostgreSQL)", "Requisitions, approval history, statuses, user roles, audit logs.")
+Container(notif, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes real-time status updates and forwards them to LIRA.")
+System_Ext(ai, "AI System", "External AI service that analyzes and routes requisitions.")
+System_Ext(lira, "LIRA System", "Receives requisition status notifications.")
+
+Container_Boundary(api, "Requisition API (Node.js, Vercel Serverless Functions)") {
+    Component(authmw, "Auth Middleware", "Express middleware", "Validates the user's token and enforces role-based access on every request.")
+
+    Component(reqctrl, "Requisition Controller", "REST controller", "Create, submit, list, and track requisitions.")
+    Component(apprctrl, "Approval Controller", "REST controller", "Review, endorse, approve, or disapprove with a reason.")
+    Component(logctrl, "Logistics Controller", "REST controller", "Process approved requisitions and manage reports.")
+
+    Component(reqsvc, "Requisition Service", "Business logic", "Creates requisitions, generates the requisition record, and tracks status.")
+    Component(wfsvc, "Approval Workflow Service", "Business logic", "Runs the approval chain across Department Head, Academic Services, Finance, and Executive Director; handles disapproval reasons.")
+    Component(fulsvc, "Fulfillment and Report Service", "Business logic", "Processes fulfillment/delivery and builds reports.")
+
+    Component(aiclient, "AI Routing Client", "HTTP client", "Sends requisitions to the AI System and applies the routing recommendation.")
+    Component(publisher, "Notification Publisher", "Event emitter", "Emits status update events on every requisition state change.")
+    Component(repo, "Requisition Repository", "Supabase client library", "Data access for requisitions, approvals, and audit logs.")
+}
+
+Rel_D(web, authmw, "Makes API calls to", "JSON/HTTPS")
+Rel_R(authmw, auth, "Validates tokens with", "HTTPS")
+
+Rel_D(authmw, reqctrl, "Forwards authenticated requests to")
+Rel_D(authmw, apprctrl, "Forwards authenticated requests to")
+Rel_D(authmw, logctrl, "Forwards authenticated requests to")
+
+Rel_D(reqctrl, reqsvc, "Uses")
+Rel_D(apprctrl, wfsvc, "Uses")
+Rel_D(logctrl, fulsvc, "Uses")
+
+Rel_R(reqsvc, aiclient, "Requests routing for submitted requisitions")
+Rel_D(aiclient, ai, "Sends requisitions for analysis and routing", "API Calls")
+
+Rel_D(reqsvc, repo, "Reads and writes requisitions via")
+Rel_D(wfsvc, repo, "Reads and writes approvals via")
+Rel_D(fulsvc, repo, "Reads and writes fulfillment data via")
+
+Rel_D(reqsvc, publisher, "Emits status events")
+Rel_D(wfsvc, publisher, "Emits status events")
+Rel_D(fulsvc, publisher, "Emits status events")
+
+Rel_D(repo, db, "Reads from and writes to", "SQL/TCP")
+Rel_D(publisher, notif, "Triggers status update events to", "Internal API / Realtime Channel")
+Rel_R(notif, lira, "Sends status notifications to", "API Calls")
+
+@enduml
