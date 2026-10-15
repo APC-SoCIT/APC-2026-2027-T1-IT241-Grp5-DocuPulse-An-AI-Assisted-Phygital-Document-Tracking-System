@@ -1,5 +1,5 @@
-@startuml
-title C4 Code Diagram (Level 4) - DocuPulse NestJS Backend (Sprint 1 Scope: DP-00 to DP-08)
+@startuml DocuPulse_Container_Diagram
+title C4 Code Diagram (Level 4) - DocuPulse
 skinparam classAttributeIconSize 0
 skinparam shadowing false
 skinparam defaultFontSize 12
