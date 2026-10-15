@@ -1,4 +1,4 @@
-@startuml DocuPulse_Container_Diagram
+@startuml docupulse_c4_code_sprint1
 title C4 Code Diagram (Level 4) - DocuPulse
 skinparam classAttributeIconSize 0
 skinparam shadowing false
@@ -157,98 +157,6 @@ package "Entities & Models" as ENT {
     + stageName: WorkflowStage
     + message: string
     + sentAt: DateTime
-  }
-}
-
-package "Enumerations & DTOs" as TYPES {
-  enum Role <<enumeration>> {
-    REQUESTOR
-    DEPARTMENT_HEAD
-    LIBRARIAN
-    FINANCE_OFFICER
-    LOGISTICS_OFFICER
-    ADMIN
-  }
-  enum DepartmentRole <<enumeration>> {
-    DEPARTMENT_HEAD
-    LIBRARIAN
-    FINANCE
-    LOGISTICS
-  }
-  enum WorkflowStage <<enumeration>> {
-    SUBMITTED
-    DEPT_HEAD_REVIEW
-    FINANCE_REVIEW
-    LOGISTICS_PROCESSING
-  }
-  enum RequisitionStatus <<enumeration>> {
-    SUBMITTED
-    IN_REVIEW
-    APPROVED
-    REJECTED
-    ON_HOLD
-  }
-  enum ApprovalStatus <<enumeration>> {
-    PENDING
-    APPROVED
-    REJECTED
-    ON_HOLD
-  }
-  class RegisterDto <<DTO>> {
-    + email, password, fullName
-    + departmentId, termsAccepted
-  }
-  class LoginDto <<DTO>> {
-    + email, password
-  }
-  class Credentials <<DTO>> {
-    + email, password
-  }
-  class AuthResponse <<DTO>> {
-    + accessToken: string
-    + user: User
-  }
-  class CreateRequisitionDto <<DTO>> {
-    + title, description, requisitionType
-    + estimatedCost, departmentId
-  }
-  class RequisitionQueryDto <<DTO>> {
-    + search?, status?
-    + page?, pageSize?
-  }
-  class StoredFile <<Value>> {
-    + fileName, fileType, fileSize
-    + storageUrl
-  }
-  class QueryOptions <<Value>> {
-    + table, filters, orderBy
-    + limit, offset
-  }
-  class FieldError <<Value>> {
-    + field: string
-    + message: string
-  }
-  class ScanQRCodeDto <<DTO>> {
-    + qrPayload: string
-    + locationName: string
-  }
-  class ValidationResult <<Value>> {
-    + isValid: boolean
-    + errors: FieldError[]
-  }
-  class SubmissionConfirmation <<DTO>> {
-    + requisitionId: string
-    + submittedAt: DateTime
-    + message: string
-  }
-  class RequisitionStatusResponse <<DTO>> {
-    + requisitionId, currentStage
-    + currentDepartment, currentLocation
-    + updatedAt
-  }
-  class ApprovalChainResponse <<DTO>> {
-    + requisitionId: string
-    + stages: ApprovalStage[]
   }
 }
 
