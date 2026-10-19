@@ -1,199 +1,35 @@
-@startuml docupulse_c4_code_sprint1
-title C4 Code Diagram (Level 4) - DocuPulse
-skinparam classAttributeIconSize 0
-skinparam shadowing false
-skinparam defaultFontSize 12
-skinparam packageStyle rectangle
-skinparam ArrowColor #555555
-skinparam class {
-  BackgroundColor #F8F8F8
-  BorderColor #555555
-}
-skinparam nodesep 40
-skinparam ranksep 70
-hide empty members
+@startuml DocuPulse-Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
-package "Security (cross-cutting guards)" as SEC {
-  class JwtAuthGuard <<Guard>> {
-    + canActivate(ctx: ExecutionContext): Promise<boolean>
-  }
-  class RolesGuard <<Guard>> {
-    + canActivate(ctx: ExecutionContext): boolean
-  }
+Person(requestor, "Requestor", "Creates and manages requisitions, and receives notifications of status.")
+Person(dept_head, "Department Head", "Reviews, endorses, and approves submitted requisitions.")
+Person(academic, "Academic Services", "Reviews and approves requisitions from an academic services standpoint.")
+Person(finance, "Finance", "Reviews and approves requisitions from a budget/finance standpoint.")
+Person(exec_director, "Executive Director", "Reviews and grants final approval on requisitions.")
+Person(logistics, "Logistics", "Views approved requisitions and processes requisitions fulfillment/delivery.")
+
+System_Boundary(docupulse, "Requisition Management System (DocuPulse)") {
+    Container(web_portal, "Web Portal", "React + Vite, hosted on Vercel", "Single-page application used to submit, track, review, and act on requisitions.")
+    Container(requisition_api, "Requisition API", "Node.js, Vercel Serverless Functions", "Handles requisitions, approval workflow, fulfillment and reports, AI routing, and role-based access.")
+    Container(auth_service, "Auth Service", "Supabase Auth", "Authentication and role-based access control.")
+    Container(notification_service, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes real-time status updates to users.")
+    ContainerDb(requisition_db, "Requisition Database", "Supabase (PostgreSQL)", "Requisitions, approval history, statuses, user roles, audit logs.")
 }
 
-package "Controllers Layer" as CTRL {
-  class AuthController <<Controller>> {
-    + register(dto: RegisterDto): Promise<AuthResponse>
-    + login(dto: LoginDto): Promise<AuthResponse>
-  }
-  class RequisitionController <<Controller>> {
-    + createRequisition(dto: CreateRequisitionDto, files: File[]): Promise<SubmissionConfirmation>
-    + getRequisitionById(id: string): Promise<Requisition>
-    + getUserRequisitions(userId: string, query: RequisitionQueryDto): Promise<Requisition[]>
-    + getRequisitionStatus(requisitionId: string): Promise<RequisitionStatusResponse>
-    + getApprovalChain(requisitionId: string): Promise<ApprovalChainResponse>
-  }
-  class TrackingController <<Controller>> {
-    + scanQRCode(dto: ScanQRCodeDto): Promise<TrackingLog>
-    + getRequisitionTrackingHistory(requisitionId: string): Promise<TrackingLog[]>
-  }
-}
+System_Ext(ai_system, "AI System", "External AI service that analyzes and routes requisitions.")
 
-package "Services / Domain Logic Layer" as SVC {
-  class AuthService <<Service>> {
-    + validateRegistration(dto: RegisterDto): ValidationResult
-    + registerUser(dto: RegisterDto): Promise<User>
-    + assignDefaultDepartmentRole(user: User, deptId: string): Promise<Role>
-    + validateUserCredentials(credentials: Credentials): Promise<User>
-    + issueAccessToken(user: User): AuthResponse
-    + verifyAccessToken(token: string): Promise<User>
-  }
-  class RequisitionService <<Service>> {
-    + validateFormCompleteness(dto: CreateRequisitionDto): ValidationResult
-    + checkDuplicateSubmission(dto: CreateRequisitionDto): Promise<boolean>
-    + generateUniqueRequisitionId(): string
-    + createRequisitionRecord(data: CreateRequisitionDto): Promise<Requisition>
-    + validateAttachments(files: File[]): ValidationResult
-    + attachSupportingDocuments(requisitionId: string, files: File[]): Promise<Document[]>
-    + getRequisitionById(id: string): Promise<Requisition>
-    + getUserRequisitions(userId: string, query: RequisitionQueryDto): Promise<Requisition[]>
-  }
-  class QRCodeService <<Service>> {
-    + generateQRCode(requisitionId: string): Promise<string>
-    + resolveRequisitionId(qrPayload: string): Promise<string>
-  }
-  class WorkflowTrackingService <<Service>> {
-    + initiateApprovalChain(requisitionId: string): Promise<ApprovalStage[]>
-    + processQRScan(dto: ScanQRCodeDto, scannedByUserId: string): Promise<TrackingLog>
-    + getCurrentStatus(requisitionId: string): Promise<RequisitionStatusResponse>
-    + getApprovalChain(requisitionId: string): Promise<ApprovalChainResponse>
-    + getTrackingHistory(requisitionId: string): Promise<TrackingLog[]>
-    + setCurrentStage(requisitionId: string, stage: WorkflowStage): Promise<void>
-    + notifyDepartmentHead(deptId: string, requisitionId: string): Promise<void>
-  }
-}
+Rel(requestor, web_portal, "Submits, manages, and tracks requisitions", "HTTPS")
+Rel(dept_head, web_portal, "Reviews, endorses, and approves requisitions", "HTTPS")
+Rel(academic, web_portal, "Reviews and approves requisitions", "HTTPS")
+Rel(finance, web_portal, "Reviews and approves requisitions", "HTTPS")
+Rel(exec_director, web_portal, "Reviews and approves requisitions", "HTTPS")
+Rel(logistics, web_portal, "Manages reports and processes requisitions", "HTTPS")
 
-package "Infrastructure / Adapters" as INFRA {
-  class SupabaseRepository <<Repository>> {
-    + saveEntity<T>(entity: T): Promise<T>
-    + findEntityById<T>(id: string): Promise<T>
-    + queryEntities<T>(query: QueryOptions): Promise<T[]>
-    + updateEntity<T>(id: string, patch: Partial<T>): Promise<T>
-  }
-  class StorageAdapter <<Adapter>> {
-    + uploadFiles(files: File[]): Promise<StoredFile[]>
-  }
-  class NotificationAdapter <<Adapter>> {
-    + sendStageChangeNotification(targetUserId: string, message: string): Promise<void>
-  }
-  class RealtimeAdapter <<Adapter>> {
-    + publishStatusChange(requisitionId: string, payload: RequisitionStatusResponse): Promise<void>
-  }
-}
-
-package "Entities & Models" as ENT {
-  class Department {
-    + id: string
-    + name: string
-    + headUserId: string
-  }
-  class User {
-    + id: string
-    + email: string
-    + fullName: string
-    + departmentId: string
-    + role: Role
-    + termsAcceptedAt: DateTime
-    + isActive: boolean
-    + createdAt: DateTime
-  }
-  class Requisition {
-    + id: string
-    + requestorId: string
-    + departmentId: string
-    + title: string
-    + description: string
-    + requisitionType: string
-    + estimatedCost: number
-    + status: RequisitionStatus
-    + currentStage: WorkflowStage
-    + currentDepartment: DepartmentRole
-    + currentLocation: string
-    + qrCodeValue: string
-    + createdAt: DateTime
-    + updatedAt: DateTime
-  }
-  class Document {
-    + id: string
-    + requisitionId: string
-    + fileName: string
-    + fileType: string
-    + fileSize: number
-    + storageUrl: string
-    + uploadedAt: DateTime
-  }
-  class ApprovalStage {
-    + id: string
-    + requisitionId: string
-    + stageName: WorkflowStage
-    + sequenceOrder: number
-    + requiredRole: DepartmentRole
-    + status: ApprovalStatus
-    + updatedTime: DateTime
-  }
-  class TrackingLog {
-    + id: string
-    + requisitionId: string
-    + scannedByUserId: string
-    + locationName: string
-    + stageName: WorkflowStage
-    + timestamp: DateTime
-  }
-  class Notification {
-    + id: string
-    + recipientUserId: string
-    + requisitionId: string
-    + stageName: WorkflowStage
-    + message: string
-    + sentAt: DateTime
-  }
-}
-
-' ---------- Guards ----------
-AuthController -[hidden]down-> SEC
-RequisitionController ..> JwtAuthGuard : <<uses>>
-TrackingController ..> RolesGuard : <<uses>>\nLogistics only
-JwtAuthGuard ..> AuthService : verifies token
-RolesGuard ..> JwtAuthGuard
-
-' ---------- Controllers -> Services ----------
-AuthController --> AuthService : delegates auth logic
-RequisitionController --> RequisitionService : submission &\nretrieval
-RequisitionController --> WorkflowTrackingService : status &\napproval chain
-TrackingController --> WorkflowTrackingService : QR scans &\ntracking history
-
-' ---------- Service -> Service ----------
-RequisitionService ..> QRCodeService : DP-07 generate QR\non submission
-RequisitionService ..> WorkflowTrackingService : DP-02 start approval chain\n+ DP-08 notify Dept Head
-WorkflowTrackingService ..> QRCodeService : resolve scanned QR
-
-' ---------- Services -> Infrastructure ----------
-AuthService --> SupabaseRepository : users / roles
-RequisitionService --> SupabaseRepository : requisitions /\ndocument metadata
-RequisitionService --> StorageAdapter : DP-03 upload\nattachments
-QRCodeService --> SupabaseRepository : store / resolve\nQR value
-WorkflowTrackingService --> SupabaseRepository : stages, tracking logs,\nnotifications
-WorkflowTrackingService ..> NotificationAdapter : DP-08 dispatch
-WorkflowTrackingService ..> RealtimeAdapter : DP-05 push updates\n(within 1 min)
-
-' ---------- Entities ----------
-Department "1" o-- "many" User : belongs to
-User "1" -- "many" Requisition : submits
-Requisition "1" *-- "many" Document : has
-Requisition "1" *-- "many" TrackingLog : contains
-Requisition "1" *-- "many" ApprovalStage : defines
-User "1" -- "many" Notification : receives
-Requisition "1" -- "many" Notification : triggers
+Rel(web_portal, requisition_api, "Makes API calls to", "JSON/HTTPS")
+Rel(requisition_api, auth_service, "Validates tokens with", "HTTPS")
+Rel(requisition_api, requisition_db, "Reads from and writes to", "SQL/TCP")
+Rel(requisition_api, notification_service, "Triggers status update events to", "Internal API / Realtime Channel")
+Rel(requisition_api, ai_system, "Sends requisitions for analysis and routing", "API Calls")
+Rel(notification_service, web_portal, "Pushes real-time status updates to", "Realtime Channel")
 
 @enduml

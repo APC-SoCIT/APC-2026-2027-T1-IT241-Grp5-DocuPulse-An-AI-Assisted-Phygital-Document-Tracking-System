@@ -1,53 +1,53 @@
-@startuml DocuPulse_C4_Component
-!include <C4/C4_Component>
+@startuml DocuPulse-Component
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 
-Container(web, "Web Portal", "React + Vite, hosted on Vercel", "Single-page application used to submit, track, review, and act on requisitions.")
-Container(auth, "Auth Service", "Supabase Auth", "Authentication and role-based access control.")
-ContainerDb(db, "Requisition Database", "Supabase (PostgreSQL)", "Requisitions, approval history, statuses, user roles, audit logs.")
-Container(notif, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes real-time status updates and forwards them to LIRA.")
-System_Ext(ai, "AI System", "External AI service that analyzes and routes requisitions.")
-System_Ext(lira, "LIRA System", "Receives requisition status notifications.")
+Container(web_portal, "Web Portal", "React + Vite, hosted on Vercel", "Single-page application used to submit, track, review, and act on requisitions.")
+
+Container(auth_service, "Auth Service", "Supabase Auth", "Authentication and role-based access control.")
+Container(notification_service, "Notification Service", "Supabase Realtime / Edge Functions", "Pushes real-time status updates to users.")
+ContainerDb(requisition_db, "Requisition Database", "Supabase (PostgreSQL)", "Requisitions, approval history, statuses, user roles, audit logs.")
+
+System_Ext(ai_system, "AI System", "External AI service that analyzes and routes requisitions.")
 
 Container_Boundary(api, "Requisition API (Node.js, Vercel Serverless Functions)") {
-    Component(authmw, "Auth Middleware", "Express middleware", "Validates the user's token and enforces role-based access on every request.")
+    Component(auth_middleware, "Auth Middleware", "Express middleware", "Validates the user's token and enforces role-based access on every request.")
 
-    Component(reqctrl, "Requisition Controller", "REST controller", "Create, submit, list, and track requisitions.")
-    Component(apprctrl, "Approval Controller", "REST controller", "Review, endorse, approve, or disapprove with a reason.")
-    Component(logctrl, "Logistics Controller", "REST controller", "Process approved requisitions and manage reports.")
+    Component(requisition_controller, "Requisition Controller", "REST controller", "Create, submit, list, and track requisitions.")
+    Component(approval_controller, "Approval Controller", "REST controller", "Review, endorse, approve, or disapprove with a reason.")
+    Component(logistics_controller, "Logistics Controller", "REST controller", "Process approved requisitions and manage reports.")
 
-    Component(reqsvc, "Requisition Service", "Business logic", "Creates requisitions, generates the requisition record, and tracks status.")
-    Component(wfsvc, "Approval Workflow Service", "Business logic", "Runs the approval chain across Department Head, Academic Services, Finance, and Executive Director; handles disapproval reasons.")
-    Component(fulsvc, "Fulfillment and Report Service", "Business logic", "Processes fulfillment/delivery and builds reports.")
+    Component(requisition_service, "Requisition Service", "Business logic", "Creates requisitions, generates the requisition record, and tracks status.")
+    Component(approval_workflow, "Approval Workflow Service", "Business logic", "Runs the approval chain across Department Head, Academic Services, Finance, and Executive Director; handles disapproval reasons.")
+    Component(fulfillment_service, "Fulfillment and Report Service", "Business logic", "Processes fulfillment/delivery and builds reports.")
+    Component(ai_routing_client, "AI Routing Client", "HTTP client", "Sends requisitions to the AI System and applies the routing recommendation.")
 
-    Component(aiclient, "AI Routing Client", "HTTP client", "Sends requisitions to the AI System and applies the routing recommendation.")
-    Component(publisher, "Notification Publisher", "Event emitter", "Emits status update events on every requisition state change.")
-    Component(repo, "Requisition Repository", "Supabase client library", "Data access for requisitions, approvals, and audit logs.")
+    Component(notification_publisher, "Notification Publisher", "Event emitter", "Emits status update events on every requisition state change.")
+    Component(requisition_repository, "Requisition Repository", "Supabase client library", "Data access for requisitions, approvals, and audit logs.")
 }
 
-Rel_D(web, authmw, "Makes API calls to", "JSON/HTTPS")
-Rel_R(authmw, auth, "Validates tokens with", "HTTPS")
+Rel(web_portal, auth_middleware, "Makes API calls to", "JSON/HTTPS")
+Rel(auth_middleware, auth_service, "Validates tokens with", "HTTPS")
 
-Rel_D(authmw, reqctrl, "Forwards authenticated requests to")
-Rel_D(authmw, apprctrl, "Forwards authenticated requests to")
-Rel_D(authmw, logctrl, "Forwards authenticated requests to")
+Rel(auth_middleware, requisition_controller, "Forwards authenticated requests to")
+Rel(auth_middleware, approval_controller, "Forwards authenticated requests to")
+Rel(auth_middleware, logistics_controller, "Forwards authenticated requests to")
 
-Rel_D(reqctrl, reqsvc, "Uses")
-Rel_D(apprctrl, wfsvc, "Uses")
-Rel_D(logctrl, fulsvc, "Uses")
+Rel(requisition_controller, requisition_service, "Uses")
+Rel(approval_controller, approval_workflow, "Uses")
+Rel(logistics_controller, fulfillment_service, "Uses")
 
-Rel_R(reqsvc, aiclient, "Requests routing for submitted requisitions")
-Rel_D(aiclient, ai, "Sends requisitions for analysis and routing", "API Calls")
+Rel(requisition_service, ai_routing_client, "Requests routing for submitted requisitions")
+Rel(ai_routing_client, ai_system, "Sends requisitions for analysis and routing", "API Calls")
 
-Rel_D(reqsvc, repo, "Reads and writes requisitions via")
-Rel_D(wfsvc, repo, "Reads and writes approvals via")
-Rel_D(fulsvc, repo, "Reads and writes fulfillment data via")
+Rel(requisition_service, notification_publisher, "Emits status events")
+Rel(approval_workflow, notification_publisher, "Emits status events")
+Rel(fulfillment_service, notification_publisher, "Emits status events")
 
-Rel_D(reqsvc, publisher, "Emits status events")
-Rel_D(wfsvc, publisher, "Emits status events")
-Rel_D(fulsvc, publisher, "Emits status events")
+Rel(requisition_service, requisition_repository, "Reads and writes requisitions via")
+Rel(approval_workflow, requisition_repository, "Reads and writes approvals via")
+Rel(fulfillment_service, requisition_repository, "Reads and writes fulfillment data via")
 
-Rel_D(repo, db, "Reads from and writes to", "SQL/TCP")
-Rel_D(publisher, notif, "Triggers status update events to", "Internal API / Realtime Channel")
-Rel_R(notif, lira, "Sends status notifications to", "API Calls")
+Rel(notification_publisher, notification_service, "Triggers status update events to", "Internal API / Realtime Channel")
+Rel(requisition_repository, requisition_db, "Reads from and writes to", "SQL/TCP")
 
 @enduml
