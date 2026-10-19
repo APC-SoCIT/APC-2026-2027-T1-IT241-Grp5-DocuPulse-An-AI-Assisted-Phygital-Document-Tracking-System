@@ -1,5 +1,5 @@
 @startuml DocuPulse_C4_Code_Sprint1
-title C4 Code Diagram (Level 4)
+title DocuPulse - C4 Code Diagram (Level 4)
 
 top to bottom direction
 hide circle
@@ -8,17 +8,19 @@ skinparam shadowing false
 skinparam backgroundColor white
 skinparam defaultFontName Arial
 skinparam classAttributeIconSize 0
-skinparam nodesep 40
-skinparam ranksep 60
+skinparam linetype polyline
+skinparam nodesep 45
+skinparam ranksep 90
 skinparam roundCorner 12
+skinparam wrapWidth 220
 
 skinparam ArrowColor #707070
-skinparam ArrowFontColor #707070
+skinparam ArrowFontColor #505050
 skinparam ArrowFontSize 10
 skinparam ArrowThickness 1
 
 skinparam titleFontColor #444444
-skinparam titleFontSize 14
+skinparam titleFontSize 16
 
 skinparam rectangle<<boundary>> {
   BackgroundColor transparent
@@ -26,7 +28,7 @@ skinparam rectangle<<boundary>> {
   BorderStyle dashed
   FontColor #444444
   FontSize 13
-  StereotypeFontColor white
+  StereotypeFontColor transparent
   StereotypeFontSize 1
 }
 
@@ -39,7 +41,6 @@ skinparam class {
   FontSize 13
   BorderThickness 1
 
-  ' components (controllers, services, guards) - same blue as the system box
   BackgroundColor<<controller>> #1168BD
   BorderColor<<controller>> #3C7FC0
   BackgroundColor<<service>> #1168BD
@@ -47,11 +48,9 @@ skinparam class {
   BackgroundColor<<guard>> #1168BD
   BorderColor<<guard>> #3C7FC0
 
-  ' infrastructure / external-facing adapters - same grey as the external system box
   BackgroundColor<<adapter>> #999999
   BorderColor<<adapter>> #8A8A8A
 
-  ' entities, enums, DTOs - same dark blue as the person boxes
   BackgroundColor<<entity>> #08427B
   BorderColor<<entity>> #073B6F
   BackgroundColor<<enumeration>> #08427B
@@ -61,7 +60,17 @@ skinparam class {
 }
 
 ' ============================================================
-rectangle "Controllers Layer" <<boundary>> {
+' LAYER 1 - Controllers (guards on the left, next to AuthService)
+' ============================================================
+rectangle "Controllers Layer" <<boundary>> as L1 {
+  class JwtAuthGuard <<guard>> {
+    +canActivate(ctx: ExecutionContext): boolean
+  }
+
+  class RolesGuard <<guard>> {
+    +canActivate(ctx: ExecutionContext): boolean
+  }
+
   class AuthController <<controller>> {
     +register(dto: RegisterDto): Promise<AuthResponse>
     +login(dto: LoginDto): Promise<AuthResponse>
@@ -84,18 +93,12 @@ rectangle "Controllers Layer" <<boundary>> {
     +getMyNotifications(userId: string): Promise<Notification[]>
     +markAsRead(notificationId: string): Promise<void>
   }
-
-  class JwtAuthGuard <<guard>> {
-    +canActivate(ctx: ExecutionContext): boolean
-  }
-
-  class RolesGuard <<guard>> {
-    +canActivate(ctx: ExecutionContext): boolean
-  }
 }
 
 ' ============================================================
-rectangle "Services / Domain Logic Layer" <<boundary>> {
+' LAYER 2 - Services (same left-to-right order as their controllers)
+' ============================================================
+rectangle "Services / Domain Logic Layer" <<boundary>> as L2 {
   class AuthService <<service>> {
     +validateUserCredentials(credentials: Credentials): Promise<User>
     +assignDefaultDepartmentRole(user: User, deptId: string): Promise<Role>
@@ -125,28 +128,69 @@ rectangle "Services / Domain Logic Layer" <<boundary>> {
 }
 
 ' ============================================================
-rectangle "Infrastructure / Adapters" <<boundary>> {
+' DTOs - kept in their own box beside the services, not inside them
+' ============================================================
+rectangle "DTOs (key ones)" <<boundary>> as LD {
+  class RegisterDto <<dto>> {
+    +email: string
+    +password: string
+    +fullName: string
+    +departmentId: string
+    +acceptedTerms: boolean
+  }
+
+  class CreateRequisitionDto <<dto>> {
+    +title: string
+    +departmentId: string
+    +description: string
+    +amount: number
+  }
+
+  class ScanQRCodeDto <<dto>> {
+    +qrPayload: string
+    +locationName: string
+  }
+
+  class RequisitionFilterDto <<dto>> {
+    +search?: string
+    +status?: RequisitionStatus
+    +dateFrom?: DateTime
+    +dateTo?: DateTime
+  }
+}
+
+' ============================================================
+' LAYER 3 - Infrastructure (ordered under the services that use them)
+' ============================================================
+rectangle "Infrastructure / Adapters" <<boundary>> as L3 {
+  class StorageAdapter <<adapter>> {
+    +uploadFiles(files: File[]): Promise<string[]>
+  }
+
   class SupabaseRepository <<adapter>> {
     +saveEntity<T>(entity: T): Promise<T>
     +findEntityById<T>(id: string): Promise<T>
     +queryEntities<T>(query: Object): Promise<T[]>
   }
 
-  class StorageAdapter <<adapter>> {
-    +uploadFiles(files: File[]): Promise<string[]>
+  class StatusRealtimeGateway <<adapter>> {
+    +publishStatusChange(requisitionId: string, stage: Stage): void
   }
 
   class NotificationAdapter <<adapter>> {
     +sendStageChangeNotification(targetUserId: string, message: string): Promise<void>
   }
-
-  class StatusRealtimeGateway <<adapter>> {
-    +publishStatusChange(requisitionId: string, stage: Stage): void
-  }
 }
 
 ' ============================================================
-rectangle "Entities & Models" <<boundary>> {
+' LAYER 4 - Entities & enumerations (bottom, in their own rows)
+' ============================================================
+rectangle "Entities & Models" <<boundary>> as L4 {
+  class Department <<entity>> {
+    +id: string
+    +name: string
+  }
+
   class User <<entity>> {
     +id: string
     +email: string
@@ -166,6 +210,25 @@ rectangle "Entities & Models" <<boundary>> {
     +updatedAt: DateTime
   }
 
+  class Notification <<entity>> {
+    +id: string
+    +requisitionId: string
+    +userId: string
+    +stage: Stage
+    +message: string
+    +isRead: boolean
+    +createdAt: DateTime
+  }
+
+  class ApprovalStage <<entity>> {
+    +id: string
+    +requisitionId: string
+    +requiredRole: Role
+    +status: ApprovalStatus
+    +approverId: string
+    +actedAt: DateTime
+  }
+
   class Document <<entity>> {
     +id: string
     +requisitionId: string
@@ -183,26 +246,9 @@ rectangle "Entities & Models" <<boundary>> {
     +stage: Stage
     +timestamp: DateTime
   }
+}
 
-  class ApprovalStage <<entity>> {
-    +id: string
-    +requisitionId: string
-    +requiredRole: Role
-    +status: ApprovalStatus
-    +approverId: string
-    +actedAt: DateTime
-  }
-
-  class Notification <<entity>> {
-    +id: string
-    +requisitionId: string
-    +userId: string
-    +stage: Stage
-    +message: string
-    +isRead: boolean
-    +createdAt: DateTime
-  }
-
+rectangle "Enumerations" <<boundary>> as L5 {
   enum Role <<enumeration>> {
     REQUESTOR
     DEPARTMENT_HEAD
@@ -232,66 +278,77 @@ rectangle "Entities & Models" <<boundary>> {
   }
 }
 
-' ============================================================
-rectangle "DTOs (key ones)" <<boundary>> {
-  class RegisterDto <<dto>> {
-    +email: string
-    +password: string
-    +fullName: string
-    +departmentId: string
-    +acceptedTerms: boolean
-  }
-
-  class RequisitionFilterDto <<dto>> {
-    +search?: string
-    +status?: RequisitionStatus
-    +dateFrom?: DateTime
-    +dateTo?: DateTime
-  }
-}
-
 ' ===================== Layer relationships ==================
-AuthController ..> RegisterDto : <b>Validates</b>
-AuthController --> AuthService : <b>Delegates auth logic</b>\n<i>[DP-00]</i>
-RequisitionController --> RequisitionService : <b>Submits and retrieves</b>\n<i>[DP-01 to DP-04]</i>
-RequisitionController --> WorkflowTrackingService : <b>Reads status and approval chain</b>\n<i>[DP-05, DP-06]</i>
-RequisitionController ..> RequisitionFilterDto : <b>Filters with</b>
-TrackingController --> WorkflowTrackingService : <b>Processes QR scans</b>\n<i>[DP-07]</i>
-NotificationController --> NotificationService : <b>Reads history</b>\n<i>[DP-08]</i>
-JwtAuthGuard ..> AuthService : <b>Verifies identity</b>
-RolesGuard ..> AuthService : <b>Checks role</b>
+' Controllers -> Services
+AuthController --> AuthService : Delegates auth\n[DP-00]
+RequisitionController --> RequisitionService : Submits / retrieves\n[DP-01 to DP-04]
+RequisitionController --> WorkflowTrackingService : Status + approval chain\n[DP-05, DP-06]
+TrackingController --> WorkflowTrackingService : Processes QR scans\n[DP-07]
+NotificationController --> NotificationService : Reads history\n[DP-08]
+JwtAuthGuard ..> AuthService : Verifies identity
+RolesGuard ..> AuthService : Checks role
 
-RequisitionService ..> WorkflowTrackingService : <b>Triggers approval chain</b>\n<i>[on creation]</i>
-RequisitionService ..> NotificationService : <b>Notifies Dept Head</b>\n<i>[on submit]</i>
-WorkflowTrackingService --> NotificationService : <b>Sends stage-change notices</b>
-NotificationService --> NotificationAdapter : <b>Dispatches</b>\n<i>[DP-08]</i>
-WorkflowTrackingService --> StatusRealtimeGateway : <b>Pushes status updates</b>\n<i>[DP-05]</i>
+' Controllers -> DTOs
+AuthController ..> RegisterDto : Validates
+RequisitionController ..> CreateRequisitionDto : Accepts
+RequisitionController ..> RequisitionFilterDto : Filters with
+TrackingController ..> ScanQRCodeDto : Accepts
 
-AuthService --> SupabaseRepository : <b>Manages user records</b>
-RequisitionService --> SupabaseRepository : <b>Persists requisitions and documents</b>
-RequisitionService --> StorageAdapter : <b>Uploads attachments</b>\n<i>[DP-03]</i>
-WorkflowTrackingService --> SupabaseRepository : <b>Logs scans and stage changes</b>\n<i>[DP-07]</i>
-NotificationService --> SupabaseRepository : <b>Stores notification history</b>
+' Service -> Service
+RequisitionService ..> WorkflowTrackingService : Triggers approval chain\n[on creation]
+RequisitionService ..> NotificationService : Notifies Dept Head\n[on submit]
+WorkflowTrackingService --> NotificationService : Stage-change notices
 
-' ---- layout hints (invisible) ----
+' Services -> Infrastructure
+RequisitionService --> StorageAdapter : Uploads attachments\n[DP-03]
+AuthService --> SupabaseRepository : User records
+RequisitionService --> SupabaseRepository : Requisitions + documents
+WorkflowTrackingService --> SupabaseRepository : Scans + stage changes\n[DP-07]
+NotificationService --> SupabaseRepository : Notification history
+WorkflowTrackingService --> StatusRealtimeGateway : Status updates\n[DP-05]
+NotificationService --> NotificationAdapter : Dispatches\n[DP-08]
+
+' ---- layout hints (invisible) : row order inside each layer ----
+JwtAuthGuard -[hidden]right-> RolesGuard
+RolesGuard -[hidden]right-> AuthController
 AuthController -[hidden]right-> RequisitionController
 RequisitionController -[hidden]right-> TrackingController
 TrackingController -[hidden]right-> NotificationController
-JwtAuthGuard -[hidden]right-> RolesGuard
+
 AuthService -[hidden]right-> RequisitionService
 RequisitionService -[hidden]right-> WorkflowTrackingService
 WorkflowTrackingService -[hidden]right-> NotificationService
-SupabaseRepository -[hidden]right-> StorageAdapter
-StorageAdapter -[hidden]right-> NotificationAdapter
-NotificationAdapter -[hidden]right-> StatusRealtimeGateway
-RegisterDto -[hidden]right-> RequisitionFilterDto
+NotificationService -[hidden]right-> RegisterDto
+
+RegisterDto -[hidden]right-> CreateRequisitionDto
+CreateRequisitionDto -[hidden]down-> ScanQRCodeDto
+ScanQRCodeDto -[hidden]right-> RequisitionFilterDto
+
+StorageAdapter -[hidden]right-> SupabaseRepository
+SupabaseRepository -[hidden]right-> StatusRealtimeGateway
+StatusRealtimeGateway -[hidden]right-> NotificationAdapter
+
+' ---- layer order (top -> bottom) ----
+RolesGuard -[hidden]down-> AuthService
+SupabaseRepository -[hidden]down-> User
+Department -[hidden]right-> User
+User -[hidden]right-> Requisition
+Notification -[hidden]right-> ApprovalStage
+ApprovalStage -[hidden]right-> Document
+Document -[hidden]right-> TrackingLog
+Role -[hidden]right-> RequisitionStatus
+RequisitionStatus -[hidden]right-> ApprovalStatus
+ApprovalStatus -[hidden]right-> Stage
+Requisition -[hidden]down-> Document
+TrackingLog -[hidden]down-> Role
 
 ' ===================== Entity relationships =================
-User "1" -- "many" Requisition : <b>submits</b>
-User "1" -- "many" Notification : <b>receives</b>
-Requisition "1" *-- "many" Document : <b>has</b>
-Requisition "1" *-- "many" TrackingLog : <b>contains</b>
-Requisition "1" *-- "many" ApprovalStage : <b>defines</b>
-Requisition "1" -- "many" Notification : <b>triggers</b>
+Department "1" -right- "many" User : has
+User "1" -right- "many" Requisition : submits
+User "1" -down- "many" Notification : receives
+Requisition "1" *-down- "many" ApprovalStage : defines
+Requisition "1" *-down- "many" Document : has
+Requisition "1" *-down- "many" TrackingLog : contains
+Requisition "1" -down- "many" Notification : triggers
 
 @enduml
